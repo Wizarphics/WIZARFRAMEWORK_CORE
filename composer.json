@@ -1,0 +1,10 @@
+{
+    "name": "wizarphics/wizarframework-core",
+    "authors": [
+        {
+            "name": "Wizarphics",
+            "email": "wizarphics@gmail.com"
+        }
+    ],
+    "require": {}
+}
