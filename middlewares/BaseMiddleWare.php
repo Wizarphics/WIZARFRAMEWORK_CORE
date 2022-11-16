@@ -12,13 +12,13 @@
  *
  */
 
-namespace app\core\middlewares;
+namespace wizarphics\wizarframework\middlewares;
 
 /**
  * Class BaseMiddleware
  *
  *@author Adeola Dev <wizarphics@gmail.com>
- *@package app\core\middlewares
+ *@package wizarphics\wizarframework\middlewares
  */
 
 abstract class BaseMiddleware

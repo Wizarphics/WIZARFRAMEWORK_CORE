@@ -11,8 +11,8 @@
  *
  */
 
-namespace app\core\form;
-use app\core\Model;
+namespace wizarphics\wizarframework\form;
+use wizarphics\wizarframework\Model;
 
 class Form
 {

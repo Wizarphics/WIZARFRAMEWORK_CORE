@@ -11,7 +11,7 @@
  *
  */
 
-namespace app\core;
+namespace wizarphics\wizarframework;
 
 abstract class Model
 {

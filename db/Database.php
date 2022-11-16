@@ -11,9 +11,9 @@
  *
  */
 
-namespace app\core\db;
+namespace wizarphics\wizarframework\db;
 
-use app\core\Application;
+use wizarphics\wizarframework\Application;
 use PDO;
 
 class Database

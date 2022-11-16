@@ -11,9 +11,9 @@
  *
  */
 
-namespace app\core;
+namespace wizarphics\wizarframework;
 
-use app\core\exception\NotFoundException;
+use wizarphics\wizarframework\exception\NotFoundException;
 
 class Router
 {

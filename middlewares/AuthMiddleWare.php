@@ -12,16 +12,16 @@
  *
  */
 
-namespace app\core\middlewares;
+namespace wizarphics\wizarframework\middlewares;
 
-use app\core\Application;
-use app\core\exception\ForbiddenException;
+use wizarphics\wizarframework\Application;
+use wizarphics\wizarframework\exception\ForbiddenException;
 
 /**
  * Class AuthMiddleware
  *
  *@author Adeola Dev <wizarphics@gmail.com>
- *@package app\core\middlewares
+ *@package wizarphics\wizarframework\middlewares
  */
 
 class AuthMiddleware extends BaseMiddleware

@@ -12,7 +12,7 @@
  *
  */
 
-namespace app\core\exception;
+namespace wizarphics\wizarframework\exception;
 
 /**
  * Class NotFoundException

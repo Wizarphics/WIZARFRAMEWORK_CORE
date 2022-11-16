@@ -11,9 +11,9 @@
  *
  */
 
-namespace app\core\db;
-use app\core\Application;
-use app\core\Model;
+namespace wizarphics\wizarframework\db;
+use wizarphics\wizarframework\Application;
+use wizarphics\wizarframework\Model;
 
 abstract class DbModel extends Model
 {

@@ -11,9 +11,9 @@
  *
  */
 
-namespace app\core;
+namespace wizarphics\wizarframework;
 
-use app\core\middlewares\BaseMiddleware;
+use wizarphics\wizarframework\middlewares\BaseMiddleware;
 
 class Controller
 {
@@ -21,7 +21,7 @@ class Controller
     public string $action = '';    
 
     /**
-     * @var \app\core\middlewares\BaseMiddleware[]
+     * @var \wizarphics\wizarframework\middlewares\BaseMiddleware[]
      */
     protected array $middlewares = [];
 

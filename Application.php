@@ -11,9 +11,9 @@
  *
  */
 
-namespace app\core;
+namespace wizarphics\wizarframework;
 
-use app\core\db\Database;
+use wizarphics\wizarframework\db\Database;
 
 class Application
 {

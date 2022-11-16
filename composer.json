@@ -6,5 +6,10 @@
             "email": "wizarphics@gmail.com"
         }
     ],
-    "require": {}
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "wizarphics\\wizarframework": "."
+        }
+    }
 }

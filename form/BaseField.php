@@ -10,9 +10,9 @@
  *
  */
 
-namespace app\core\form;
+namespace wizarphics\wizarframework\form;
 
-use app\core\Model;
+use wizarphics\wizarframework\Model;
 
 abstract class BaseField
 {

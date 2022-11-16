@@ -10,7 +10,7 @@
  *
  */
 
-namespace app\core;
+namespace wizarphics\wizarframework;
 
 class View
 {
