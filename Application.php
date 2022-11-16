@@ -17,13 +17,18 @@ use wizarphics\wizarframework\db\Database;
 
 class Application
 {
+    const EVENT_BEFORE_REQUEST = 'beforeRequest';
+    const EVENT_AFTER_REQUEST = 'afterRequest';
+
+    protected array $eventListeners = [];
+
     public static string $ROOT_DIR;
 
     public string $layout = 'main';
 
     public string $userClass;
     public static Application $app;
-    public ?Controller $controller=null;
+    public ?Controller $controller = null;
     public Request $request;
     public Router $router;
     public Response $response;
@@ -63,8 +68,10 @@ class Application
 
     public function run()
     {
+        $this->triggerEvent(self::EVENT_BEFORE_REQUEST);
         try {
             echo $this->router->resolve();
+            $this->triggerEvent(self::EVENT_AFTER_REQUEST);
         } catch (\Exception $e) {
             //throw $th;
             // echo "Error: " . $th->getMessage();
@@ -73,6 +80,19 @@ class Application
                 'exception' => $e
             ]);
         }
+    }
+
+    public function triggerEvent($eventName)
+    {
+        $callbacks = $this->eventListeners[$eventName] ?? [];
+        foreach ($callbacks as $callback) {
+            call_user_func($callback);
+        }
+    }
+
+    public function on($eventName, $callback)
+    {
+        $this->eventListeners[$eventName][] = $callback;
     }
 
     /**
