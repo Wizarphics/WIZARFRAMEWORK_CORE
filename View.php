@@ -50,4 +50,14 @@ class View
         $layoutContent = $this->layoutContent();
         return str_replace('{{content}}', $viewContent, $layoutContent);
     }
+
+    public function renderCustomView(string $view, array $params=[])
+    {
+        foreach ($params as $key => $value) {
+            $$key = $value;
+        }
+        ob_start();
+        include_once $view.".php";
+        return ob_get_clean();
+    }
 }
