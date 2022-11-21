@@ -23,6 +23,7 @@ class Application
     protected array $eventListeners = [];
 
     public static string $ROOT_DIR;
+    public static string $CORE_DIR;
 
     public string $layout = 'main';
 
@@ -42,6 +43,7 @@ class Application
     {
         $this->userClass = $config['userClass'];
         self::$ROOT_DIR = $rootPath;
+        self::$CORE_DIR = (__DIR__).DIRECTORY_SEPARATOR;
         self::$app = $this;
         $this->request = new Request();
         $this->response = new Response();
