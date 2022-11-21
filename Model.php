@@ -32,8 +32,14 @@ abstract class Model
         }
     }
 
-    public function validate()
+    public function validate(): bool
     {
+        if (!Csrf::verify(Application::$app->request)) {
+            // $this->addError(csrf::tokenFieldName, 'Invalid Request Csrf Token is invalid or missing.');
+            session()->setFlash('error', 'Invalid Request Csrf Token is invalid or missing.');
+
+            return false;
+        };
         foreach ($this->rules() as $attribute => $rules) {
             $value = $this->{$attribute};
             foreach ($rules as $rule) {
@@ -85,7 +91,7 @@ abstract class Model
     private function addErrorFrorRule(string $attribute, string $rule, $params = [])
     {
         $message = $this->errorMessages()[$rule] ?? '';
-        $params = array_unique(array_merge($params, ['field'=>$this->getLabel($attribute), 'value'=>$this->{$attribute}]));
+        $params = array_unique(array_merge($params, ['field' => $this->getLabel($attribute), 'value' => $this->{$attribute}]));
         foreach ($params as $key => $value) {
             $message = str_replace("{{$key}}", $value, $message);
         }
@@ -105,7 +111,7 @@ abstract class Model
             self::RULE_MATCH => 'This {field} field must be the same as {match}',
             self::RULE_MAX => 'Max length of this {field} field must be {max}',
             self::RULE_MIN => 'Min length of this {field} field must be {min}',
-            self::RULE_UNIQUE => 'Record with this {field} field already exists'
+            self::RULE_UNIQUE => 'Record with this {field} field already exists',
         ];
     }
 
