@@ -11,7 +11,7 @@
  *
  */
 
-namespace wizarphics\wizarframework\form;
+namespace wizarphics\wizarframework\helpers\form;
 
 use wizarphics\wizarframework\Model;
 
@@ -24,10 +24,11 @@ class TextAreaField extends BaseField
      * @param Model $model
      * @param string $attribute
      */
-    public function __construct(Model $model, string $attribute)
+    public function __construct(Model $model, string $attribute, array $fieldAttributes = [])
     {
-        $this->model = $model;
-        $this->attribute = $attribute;
+        parent::__construct($model, $attribute, $fieldAttributes);
+        $class = $this->globalClass.' form-control';
+        $this->globalClass = $class;
     }
 
     /**
@@ -36,8 +37,9 @@ class TextAreaField extends BaseField
     public function renderInput(): string
     {
         return sprintf(
-            '<textarea name="%s" class="form-control %s">%s</textarea>',
+            '<textarea name="%s" class="%s %s">%s</textarea>',
             $this->attribute,
+            $this->globalClass,
             $this->model->hasError($this->attribute) ? 'is-invalid' : '',
             $this->model->{$this->attribute},
         );
