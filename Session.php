@@ -15,39 +15,53 @@ namespace wizarphics\wizarframework;
 
 class Session
 {
-    protected const FLASH_KEY='flash_messages';
+    protected const FLASH_KEY = 'flash_messages';
     public function __construct()
     {
+        // if (!session_status() == PHP_SESSION_ACTIVE) {
         session_start();
-        $flashMessages= $_SESSION[self::FLASH_KEY]??[];
+        // }
+        $flashMessages = $_SESSION[self::FLASH_KEY] ?? [];
         foreach ($flashMessages as $key => &$flashMessage) {
             //mark to be removed
-            $flashMessage['remove']=true;
+            $flashMessage['remove'] = true;
         }
-        $_SESSION[self::FLASH_KEY]=$flashMessages;
+        $_SESSION[self::FLASH_KEY] = $flashMessages;
     }
 
     public function setFlash($key, $message)
     {
-        $_SESSION[self::FLASH_KEY][$key]=[
-            'remove'=>false,
-            'value'=>$message
+        $_SESSION[self::FLASH_KEY][$key] = [
+            'remove' => false,
+            'value' => $message
         ];
     }
 
-    public function getFlash($key)
+    public function hasFlash(string $key)
     {
-        return $_SESSION[self::FLASH_KEY][$key]['value']??false;
+        return isset($_SESSION[self::FLASH_KEY][$key]);
+    }
+    public function getFlash(string $key)
+    {
+        if(!isset($_SESSION[self::FLASH_KEY][$key])){
+            return false;
+        }
+        $flashM = $_SESSION[self::FLASH_KEY][$key]['value'];
+        $flashR = $_SESSION[self::FLASH_KEY][$key]['remove'];
+        if ($flashR) {
+            unset($_SESSION[self::FLASH_KEY][$key]);
+        }
+        return $flashM;
     }
 
     public function set(string $key, $value)
     {
-        $_SESSION[$key]=$value;
+        $_SESSION[$key] = $value;
     }
 
     public function get($key)
     {
-        return $_SESSION[$key]??false;
+        return $_SESSION[$key] ?? false;
     }
 
     public function remove($key)
@@ -55,16 +69,16 @@ class Session
         unset($_SESSION[$key]);
     }
 
-    public function __destruct()
-    {
-        // iterate over marked to be removed
-        $flashMessages= $_SESSION[self::FLASH_KEY]??[];
-        foreach ($flashMessages as $key => &$flashMessage) {
-            if ($flashMessage['remove']){
-                unset($flashMessages[$key]);
-            }
-        }
+    // public function __destruct()
+    // {
+    //     // iterate over marked to be removed
+    //     $flashMessages= $_SESSION[self::FLASH_KEY]??[];
+    //     foreach ($flashMessages as $key => &$flashMessage) {
+    //         if ($flashMessage['remove']){
+    //             unset($flashMessages[$key]);
+    //         }
+    //     }
 
-        $_SESSION[self::FLASH_KEY]=$flashMessages;
-    }
+    //     $_SESSION[self::FLASH_KEY]=$flashMessages;
+    // }
 }
