@@ -6,10 +6,12 @@
             "email": "wizarphics@gmail.com"
         }
     ],
-    "require": {},
     "autoload": {
         "psr-4": {
             "wizarphics\\wizarframework\\": "."
         }
+    },
+    "require-dev": {
+        "php-sage/sage": "^1.2"
     }
 }
