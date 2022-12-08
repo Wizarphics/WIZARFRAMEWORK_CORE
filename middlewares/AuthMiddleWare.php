@@ -24,7 +24,7 @@ use wizarphics\wizarframework\exception\ForbiddenException;
  *@package wizarphics\wizarframework\middlewares
  */
 
-class AuthMiddleware extends BaseMiddleware
+class AuthMiddleWare extends BaseMiddleWare
 {
     public array $actions = [];
 
