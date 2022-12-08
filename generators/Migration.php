@@ -3,72 +3,17 @@
 namespace wizarphics\wizarframework\generators;
 
 use wizarphics\wizarframework\Application;
-use wizarphics\wizarframework\Controller;
 use wizarphics\wizarframework\File;
 use wizarphics\wizarframework\files\FileCollection;
+use wizarphics\wizarframework\Generator;
 use wizarphics\wizarframework\Request;
 use wizarphics\wizarframework\Response;
 
-class Migration extends Controller
+class Migration extends Generator
 {
 
+    protected bool $hasPrefix=true;
     protected string $fileTemp;
-    public function create(Request $request, Response $response, ?string $name=null)
-    {
-        if (!$name) {
-            readline_add_history($b = readline('Migration Class Name:'));
-        } else {
-            $b = $name;
-        }
-        $b = trim($b);
-        if ($b && $b != null) {
-            $prefix = $this->getPrefix();
-            $className = $prefix . str_replace([' ', '-'], '', ucwords(strtolower($b)));
-            $fileName = $className.'.php';
-
-            $fileTemp = $this->getTemp();
-            $temp = str_replace(
-                [
-                    '<@php',
-                    // '{namespace}',
-                    '{className}',
-                ],[
-                    '<?php',
-                    // $nameSpace,
-                    $className,
-                ],$fileTemp
-            );
-
-            $newMigrationFile = fopen(MIGRATION_PATH.$fileName, 'a');
-            if ($newMigrationFile == false){
-                $this->log("Failed to create file.");
-                return;
-            }
-            fputs($newMigrationFile, $temp);
-            fclose($newMigrationFile);
-
-            // if (preg_match('/create_table/i', $b)) {
-            //     $this->fileTemp = 'create_tableMigrationTemp';
-            // } elseif (preg_match('/add_column/i', $b)) {
-            //     $this->fileTemp = 'add_columnMigrationTemp';
-            // } elseif (preg_match('/update_column/i',  $b)||preg_match('/modify/i', $b)) {
-            //     $this->fileTemp = 'modifyMigrationTemp';
-            // } elseif (preg_match('/drop_table/i',  $b)) {
-            //     $this->fileTemp = 'drop_tableMigrationTemp';
-            // } elseif (preg_match('/rename_table/i',  $b)) {
-            //     $this->fileTemp = 'renameTableMigrationTemp';
-            // }elseif (preg_match('/seed_table/i', $b)) {
-            //     $this->fileTemp = 'seedTableMigrationTemp';
-            // }
-            // else {
-            //     $this->fileTemp = 'generalMigrationTemp';
-            // };
-            // echo 'File with name ' . $fileName . ' has been Created Successfully';
-
-            $this->log("File created: " . MIGRATION_PATH . $fileName);
-            return true;
-        }
-    }
 
     protected function getPrefix(): string
     {
@@ -80,14 +25,26 @@ class Migration extends Controller
         return 'm' . $newIndex . '_';
     }
 
-    protected function getTemp(): string
+    /**
+     * @return self
+     */
+    protected function setTemplateName(): self
     {
-        $tempLate = Application::$app->view->renderCustomView(__DIR__ . '/templates/migration.tpl');
-        return $tempLate ?? '';
+        $this->templateName = 'migration';
+        return $this;
+    }
+    /**
+     * @return Generator
+     */
+    public function setDefaultNameSapce(): Generator
+    {
+        $this->defaultNameSapce = (env('app.defaultNamespace') ?? 'app\\') . 'migrations';
+        return $this;
     }
 
-    protected function log($message)
+    public function setBaseDir(): Generator
     {
-        echo '[' . date('Y-m-d H:i:s') . '] - ' . $message . PHP_EOL;
+        $this->baseDir = 'migrations';
+        return $this;
     }
 }
