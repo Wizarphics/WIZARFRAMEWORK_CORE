@@ -13,6 +13,7 @@
 
 namespace wizarphics\wizarframework;
 
+#{AllowDynamicProperties}
 abstract class Model
 {
     public const RULE_REQUIRED = 'required';
@@ -23,7 +24,20 @@ abstract class Model
     public const RULE_UNIQUE = 'unique';
     public array $errors = [];
 
-    public function loadData($data)
+
+    /**
+     * [Description for loadData]
+     *
+     * @param mixed $data
+     * 
+     * @return void
+     * 
+     * Created at: 11/24/2022, 2:55:45 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function loadData($data):void
     {
         foreach ($data as $key => $value) {
             if (property_exists($this, $key)) {
@@ -32,6 +46,16 @@ abstract class Model
         }
     }
 
+    /**
+     * [Description for validate]
+     *
+     * @return bool
+     * 
+     * Created at: 11/24/2022, 2:55:51 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
     public function validate(): bool
     {
         if (!Csrf::verify(Application::$app->request)) {
@@ -82,13 +106,47 @@ abstract class Model
         return empty($this->errors);
     }
 
+    /**
+     * [Description for rules]
+     *
+     * @return array
+     * 
+     * Created at: 11/24/2022, 2:55:58 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
     abstract public function rules(): array;
 
+    /**
+     * [Description for labels]
+     *
+     * @return array
+     * 
+     * Created at: 11/24/2022, 2:56:03 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
     public function labels(): array
     {
         return [];
     }
-    private function addErrorFrorRule(string $attribute, string $rule, $params = [])
+    /**
+     * [Description for addErrorFrorRule]
+     *
+     * @param string $attribute
+     * @param string $rule
+     * @param array $params
+     * 
+     * @return void
+     * 
+     * Created at: 11/24/2022, 2:56:21 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    private function addErrorFrorRule(string $attribute, string $rule, $params = []):void
     {
         $message = $this->errorMessages()[$rule] ?? '';
         $params = array_unique(array_merge($params, ['field' => $this->getLabel($attribute), 'value' => $this->{$attribute}]));
@@ -98,12 +156,35 @@ abstract class Model
         $this->errors[$attribute][] = $message;
     }
 
-    public function addError(string $attribute, string $message)
+    /**
+     * [Description for addError]
+     *
+     * @param string $attribute
+     * @param string $message
+     * 
+     * @return void
+     * 
+     * Created at: 11/24/2022, 2:56:29 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function addError(string $attribute, string $message):void
     {
         $this->errors[$attribute][] = $message;
     }
 
-    public function errorMessages()
+    /**
+     * [Description for errorMessages]
+     *
+     * @return array
+     * 
+     * Created at: 11/24/2022, 2:56:37 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function errorMessages():array
     {
         return [
             self::RULE_REQUIRED => 'This {field} field is required',
@@ -115,17 +196,53 @@ abstract class Model
         ];
     }
 
-    public function getLabel($attribute)
+    /**
+     * [Description for getLabel]
+     *
+     * @param mixed $attribute
+     * 
+     * @return string
+     * 
+     * Created at: 11/24/2022, 2:56:53 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getLabel($attribute):string
     {
         return $this->labels()[$attribute] ?? $attribute;
     }
 
-    public function hasError($attribute)
+    /**
+     * [Description for hasError]
+     *
+     * @param mixed $attribute
+     * 
+     * @return bool|string|array
+     * 
+     * Created at: 11/24/2022, 2:57:47 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function hasError($attribute):bool|array|string
     {
         return $this->errors[$attribute] ?? false;
     }
 
-    public function getFirstError($attribute)
+    /**
+     * [Description for getFirstError]
+     *
+     * @param mixed $attribute
+     * 
+     * @return string|false
+     * 
+     * Created at: 11/24/2022, 2:58:06 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getFirstError($attribute):string|false
     {
         return $this->errors[$attribute][0] ?? false;
     }
