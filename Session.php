@@ -16,6 +16,15 @@ namespace wizarphics\wizarframework;
 class Session
 {
     protected const FLASH_KEY = 'flash_messages';
+    /**
+     * [Description for __construct]
+     *
+     * 
+     * Created at: 11/24/2022, 2:31:11 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
     public function __construct()
     {
         // if (!session_status() == PHP_SESSION_ACTIVE) {
@@ -29,42 +38,126 @@ class Session
         $_SESSION[self::FLASH_KEY] = $flashMessages;
     }
 
-    public function setFlash($key, $message)
+    /**
+     * [Description for setFlash]
+     *
+     * @param string $key
+     * @param mixed $message
+     * 
+     * @return void
+     * 
+     * Created at: 11/24/2022, 2:52:39 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function setFlash(string $key, mixed $message): void
     {
-        $_SESSION[self::FLASH_KEY][$key] = [
+        $to_set = [
+            'time_set' => date('Y-m-d H:i:s'),
+            'message' => $message,
             'remove' => false,
-            'value' => $message
         ];
+        $_SESSION[self::FLASH_KEY][$key] = $to_set;
     }
 
-    public function hasFlash(string $key)
+    /**
+     * [Description for hasFlash]
+     *
+     * @param string $key
+     * 
+     * @return bool
+     * 
+     * Created at: 11/24/2022, 2:53:56 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function hasFlash(string $key): bool
     {
         return isset($_SESSION[self::FLASH_KEY][$key]);
     }
-    public function getFlash(string $key)
+    /**
+     * [Description for getFlash]
+     *
+     * @param string $key
+     * 
+     * @return mixed|false
+     * 
+     * Created at: 11/24/2022, 2:54:22 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getFlash(string $key): mixed
     {
-        if(!isset($_SESSION[self::FLASH_KEY][$key])){
+        if (!isset($_SESSION[self::FLASH_KEY][$key])) {
             return false;
         }
-        $flashM = $_SESSION[self::FLASH_KEY][$key]['value'];
+        $flashM = $_SESSION[self::FLASH_KEY][$key];
         $flashR = $_SESSION[self::FLASH_KEY][$key]['remove'];
         if ($flashR) {
             unset($_SESSION[self::FLASH_KEY][$key]);
         }
         return $flashM;
     }
-
-    public function set(string $key, $value)
+    /**
+     * [Description for set]
+     *
+     * @param string $key
+     * @param mixed $value
+     * 
+     * @return void
+     * 
+     * Created at: 11/24/2022, 2:54:54 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics
+     */
+    public function set(string $key, $value): void
     {
-        $_SESSION[$key] = $value;
+        $to_set = [
+            'time_set' => date('Y-m-d H:i:s'),
+            'message' => $value,
+        ];
+        $_SESSION[$key] = $to_set;
     }
 
-    public function get($key)
+    /**
+     * [Description for get]
+     *
+     * @param mixed $key
+     * 
+     * @return string|false
+     * 
+     * Created at: 11/24/2022, 2:55:02 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function get($key): string|false|array
     {
         return $_SESSION[$key] ?? false;
     }
 
-    public function remove($key)
+    public function getValue($key)
+    {
+        return $_SESSION[$key]['message'] ?? false;   
+    }
+
+    /**
+     * [Description for remove]
+     *
+     * @param mixed $key
+     * 
+     * @return void
+     * 
+     * Created at: 11/24/2022, 2:55:15 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function remove($key): void
     {
         unset($_SESSION[$key]);
     }
