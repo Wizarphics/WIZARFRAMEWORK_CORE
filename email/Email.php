@@ -4,8 +4,7 @@
 
 namespace wizarphics\wizarframework\email;
 
-use ErrorException;
-use MessageFormatter;
+use \ErrorException;
 use wizarphics\wizarframework\configs\Email as ConfigsEmail;
 use wizarphics\wizarframework\configs\Mimes;
 use wizarphics\wizarframework\utilities\debugger\Functions;
@@ -664,7 +663,7 @@ class Email
     {
         $locale = $locale??'en_US';
         $ms = $this->langs[$key]??'';
-        $msg = MessageFormatter::formatMessage($locale, $ms, $args);
+        $msg = sprintf($ms, $args);
         return $msg;
     }
 
@@ -1593,8 +1592,9 @@ class Email
             }
 
             // Events::trigger('email', $this->archive);
-            $dbg = new Functions;
-            $dbg->writeLog(['email' => $this->archive]);
+            // $dbg = new Functions;
+            // dd(je($this->archive, 0, 40000));
+            // $dbg->writeLog(json_encode($this->archive, 0, 40000));
             // Application::$app->on(Application::EVENT_AFTER_REQUEST, )
         }
 
@@ -1644,7 +1644,7 @@ class Email
         $this->setArchiveValues();
         // Events::trigger('email', $this->archive);
         $dbg = new Functions;
-        $dbg->writeLog(['email' => $this->archive]);
+        // $dbg->writeLog(json_encode($this->archive));
     }
 
     /**
