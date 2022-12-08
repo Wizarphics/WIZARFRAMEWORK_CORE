@@ -40,11 +40,11 @@ class Database
         $files = scandir(Application::$ROOT_DIR . '/migrations');
         $toApplyMigrations = array_diff($files, $appliedMigrations);
         foreach ($toApplyMigrations as $migration) {
-            if ($migration === '.' || $migration === '..') {
+            if ($migration === '.' || $migration === '..' || $migration == 'index.html'|| $migration == '.gitkeep'|| $migration == '.htaccess') {
                 continue;
             }
 
-            require_once Application::$ROOT_DIR . '/migrations/' . $migration;
+            require_once Application::$ROOT_DIR.'/migrations/' . $migration;
 
             $className = pathinfo($migration, PATHINFO_FILENAME);
             $instance = new $className();
@@ -63,13 +63,15 @@ class Database
 
     public function createMigrationsTable()
     {
-        $sql = "CREATE TABLE IF NOT EXISTS migrations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    migration VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)ENGINE=INNODB;
-    ";
-        $this->pdo->exec($sql);
+        if ($this->tableExists('migrations') == false) {
+            $sql = "CREATE TABLE migrations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                migration VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )ENGINE=INNODB;
+            ";
+            $this->pdo->exec($sql);
+        }
     }
 
     public function getAppliedMigrations()
@@ -78,16 +80,16 @@ class Database
         $statement = $this->pdo->prepare($sql);
         $statement->execute();
 
-        return $statement->fetchAll(\PDO::FETCH_COLUMN);
+        return $statement->fetchAll(PDO::FETCH_COLUMN);
     }
 
     public function saveMigrations(array $migrations)
     {
-        $str = implode(",",array_map(fn($m) => "('$m')", $migrations));
+        $str = implode(",", array_map(fn ($m) => "('$m')", $migrations));
 
         $sql = "INSERT INTO migrations (migration) VALUES 
         $str";
-        $statement=$this->pdo->prepare($sql);
+        $statement = $this->pdo->prepare($sql);
         $statement->execute();
     }
 
@@ -96,10 +98,21 @@ class Database
         return $this->pdo->prepare($sql);
     }
 
+    public function query($sql)
+    {
+        return $this->pdo->query($sql);
+    }
 
+    public function tableExists($table)
+    {
+        $st = $this->prepare("SHOW TABLES");
+        $st->execute();
+        $tables = $st->fetchAll(PDO::FETCH_UNIQUE);
+        return (array_key_exists($table, $tables));
+    }
 
     protected function log($message)
     {
-        echo '['.date('Y-m-d H:i:s').'] - '.$message.PHP_EOL;
+        echo '[' . date('Y-m-d H:i:s') . '] - ' . $message . PHP_EOL;
     }
 }

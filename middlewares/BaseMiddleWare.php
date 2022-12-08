@@ -21,7 +21,7 @@ namespace wizarphics\wizarframework\middlewares;
  *@package wizarphics\wizarframework\middlewares
  */
 
-abstract class BaseMiddleware
+abstract class BaseMiddleWare
 {
     abstract public function execute();
 }

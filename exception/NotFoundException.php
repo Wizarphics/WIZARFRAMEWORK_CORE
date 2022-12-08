@@ -25,4 +25,10 @@ class NotFoundException extends \Exception
 {
     protected $message = 'Resource Not Found.';
     protected $code = 404;
+
+    public static function setFile(string $path)
+    {
+        self::$file = $path;
+        return new static;
+    }
 }

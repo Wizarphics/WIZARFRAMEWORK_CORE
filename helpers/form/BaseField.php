@@ -10,7 +10,7 @@
  *
  */
 
-namespace wizarphics\wizarframework\form;
+namespace wizarphics\wizarframework\helpers\form;
 
 use wizarphics\wizarframework\Model;
 
@@ -19,7 +19,11 @@ abstract class BaseField
 
     public Model $model;
     public string $attribute;
-    public array $fieldAttributes;
+    public string $fieldAttributes;
+
+    public string $id = '';
+
+    public string $globalClass = '';
 
     /**
      * @param Model $model
@@ -30,7 +34,26 @@ abstract class BaseField
     {
         $this->model = $model;
         $this->attribute = $attribute;
-        $this->fieldAttributes = $fieldAttributes;
+        $fieldAttributesStr = [];
+
+        if (array_key_exists('id', $fieldAttributes)) {
+            $this->id = $fieldAttributes['id'];
+            unset($fieldAttributes['id']);
+        }
+
+        if (array_key_exists('class', $fieldAttributes)) {
+            $this->globalClass .= ' ' . $fieldAttributes['class'];
+            unset($fieldAttributes['class']);
+        }
+
+        foreach ($fieldAttributes as $key => $value) {
+            if (is_int($key))
+                $fieldAttributesStr[$value] = "true";
+            else
+                $fieldAttributesStr[$key] = $value;
+        }
+        $addtionalFields = implode(" ", array_map(fn ($attr, $value) => "$attr = '$value'", array_keys($fieldAttributesStr), $fieldAttributesStr));
+        $this->fieldAttributes = $addtionalFields;
     }
     abstract public function renderInput(): string;
     public function __toString()
@@ -43,7 +66,7 @@ abstract class BaseField
                     %s
                 </div>
             </div>',
-            $this->model->getLabel($this->attribute),
+            $this->model->getLabel(rtrim($this->attribute, '[]')),
             $this->renderInput(),
             $this->model->getFirstError($this->attribute)
         );

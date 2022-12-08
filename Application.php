@@ -13,6 +13,7 @@
 
 namespace wizarphics\wizarframework;
 
+use Throwable;
 use wizarphics\wizarframework\db\Database;
 
 class Application
@@ -23,6 +24,7 @@ class Application
     protected array $eventListeners = [];
 
     public static string $ROOT_DIR;
+    public static string $CORE_DIR;
 
     public string $layout = 'main';
 
@@ -42,6 +44,7 @@ class Application
     {
         $this->userClass = $config['userClass'];
         self::$ROOT_DIR = $rootPath;
+        self::$CORE_DIR = (__DIR__) . DIRECTORY_SEPARATOR;
         self::$app = $this;
         $this->request = new Request();
         $this->response = new Response();
@@ -51,7 +54,7 @@ class Application
 
         $this->db = new Database($config['db']);
 
-        $primaryValue = $this->session->get('user');
+        $primaryValue = $this->session->getValue('user');
         if ($primaryValue) {
             $userClassInstance = new $this->userClass;
             $primaryKey = $userClassInstance->primaryKey();
@@ -66,20 +69,40 @@ class Application
         return !self::$app->user;
     }
 
+    public function handleExceptions(Throwable $e)
+    {
+        log_message('error', [$e->getMessage(), $e->getTraceAsString()]);
+        $code = $e->getCode();
+        if (is_string($code)) {
+            $code = 500;
+        }
+
+        if (is_cli()) :
+            echo $e->getCode();
+            exit;
+        else :
+            $this->response->setStatusCode($code);
+            if (file_exists(VIEWPATH . '_errors/_' . $code . '.php'))
+                echo $this->view->renderView('_errors/_' . $code, [
+                    'exception' => $e
+                ]);
+            else
+                echo $this->view->renderView('_errors/_exceptions', [
+                    'exception' => $e
+                ]);
+        endif;
+    }
+
     public function run()
     {
+        set_exception_handler([$this, 'handleExceptions']);
         $this->triggerEvent(self::EVENT_BEFORE_REQUEST);
         try {
             echo $this->router->resolve();
-            $this->triggerEvent(self::EVENT_AFTER_REQUEST);
-        } catch (\Exception $e) {
-            //throw $th;
-            // echo "Error: " . $th->getMessage();
-            $this->response->setStatusCode($e->getCode());
-            echo $this->view->renderView('_errors/_exceptions', [
-                'exception' => $e
-            ]);
+        }catch(Throwable $e){
+            $this->handleExceptions($e);
         }
+        $this->triggerEvent(self::EVENT_AFTER_REQUEST);
     }
 
     public function triggerEvent($eventName)

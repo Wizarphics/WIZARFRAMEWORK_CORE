@@ -11,7 +11,7 @@
  *
  */
 
-namespace wizarphics\wizarframework\form;
+namespace wizarphics\wizarframework\helpers\form;
 
 use wizarphics\wizarframework\Model;
 
@@ -20,6 +20,7 @@ class InputField extends BaseField
     public const TYPE_TEXT = 'text';
     public const TYPE_PASSWORD = 'password';
     public const TYPE_NUMBER = 'number';
+    public const TYPE_CHECKBOX = 'checkbox';
     public const TYPE_TEL = 'tel';
     public const TYPE_EMAIL = 'email';
     public const TYPE_DATE_TIME = 'datetime-local';
@@ -27,7 +28,13 @@ class InputField extends BaseField
     public const TYPE_TIME = 'time';
     public const TYPE_COLOR = 'color';
 
+    public const TYPE_SEARCH = 'search';
+
+    public const TYPE_FILE = 'file';
+
     public string $type;
+
+    public string $className = 'form-control';
 
     /**
      * @param Model $model
@@ -38,6 +45,8 @@ class InputField extends BaseField
     {
         $this->type = self::TYPE_TEXT;
         parent::__construct($model, $attribute, $fieldAttributes);
+        $class= $this->className.' '.$this->globalClass;
+        $this->globalClass = $class;
     }
 
     public function emailField()
@@ -49,6 +58,12 @@ class InputField extends BaseField
     public function passwordField()
     {
         $this->type = self::TYPE_PASSWORD;
+        return $this;
+    }
+
+    public function fileField()
+    {
+        $this->type = self::TYPE_FILE;
         return $this;
     }
 
@@ -87,27 +102,27 @@ class InputField extends BaseField
         $this->type = self::TYPE_TIME;
         return  $this;
     }
+
+
+    public function search()
+    {
+        $this->type = self::TYPE_SEARCH;
+        return  $this;
+    }
+
     /**
      * @return string
      */
     public function renderInput(): string
     {
-        $fieldAttributes = [];
-
-        foreach ($this->fieldAttributes as $key => $value) {
-            if (is_int($key))
-                $fieldAttributes[$value] = "true";
-            else
-                $fieldAttributes[$key] = $value;
-        }
-
-        $addtionalFields = implode(" AND ", array_map(fn ($attr, $value) => "$attr = $value", array_keys($fieldAttributes), $fieldAttributes));
+        $attribute = rtrim($this->attribute, '[]');
         return sprintf(
-            '<input type="%s" name="%s" %s value="%s" class="form-control %s">',
+            '<input type="%s" name="%s" %s value="%s" class="%s %s">',
             $this->type,
             $this->attribute,
-            $addtionalFields,
-            $this->model->{$this->attribute},
+            $this->fieldAttributes,
+            $this->model->{$attribute},
+            $this->globalClass,
             $this->model->hasError($this->attribute) ? 'is-invalid' : '',
         );
     }
