@@ -21,13 +21,28 @@ use wizarphics\wizarframework\files\FileUploaded;
 
 class Request
 {
+
+    /**
+     * @var array
+     */
+    private array $routeArgs;
     /**
      * File collection
      *
      * @var FileCollection|null
      */
     protected $files;
-    public function getPath()
+    /**
+     * [Description for getPath]
+     *
+     * @return string|false
+     * 
+     * Created at: 11/24/2022, 2:25:48 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getPath():string|false
     {
         $path = $_SERVER['REQUEST_URI'] ?? '/';
         if($this->Method() == 'cli'){
@@ -41,7 +56,17 @@ class Request
         return substr($path, 0, $position);
     }
 
-    public function Method()
+    /**
+     * [Description for Method]
+     *
+     * @return string
+     * 
+     * Created at: 11/24/2022, 2:26:38 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function Method():string
     {
         if (is_cli()) {
             return 'cli';
@@ -49,7 +74,17 @@ class Request
         return strtolower($_SERVER['REQUEST_METHOD']);
     }
 
-    public function getBody()
+    /**
+     * [Description for getBody]
+     *
+     * @return array
+     * 
+     * Created at: 11/24/2022, 2:27:34 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getBody():array
     {
         $body = [];
         if ($this->Method() === 'get') {
@@ -74,7 +109,17 @@ class Request
     }
 
 
-    public function getFiles()
+    /**
+     * [Description for getFiles]
+     *
+     * @return array|null
+     * 
+     * Created at: 11/24/2022, 2:28:04 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getFiles():array|null
     {
         if ($this->files === null) {
             $this->files = new FileCollection();
@@ -83,13 +128,21 @@ class Request
         return $this->files->all(); //return all uploaded files
     }
 
+
     /**
      * Verify if a file exist, by the name of the input field used to upload it, in the collection
      * of uploaded files and if is have been uploaded with multiple option.
      *
+     * @param string $fileID
+     * 
      * @return array|null
+     * 
+     * Created at: 11/24/2022, 2:29:18 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
      */
-    public function getFileMultiple(string $fileID)
+    public function getFileMultiple(string $fileID):array|null
     {
         if ($this->files === null) {
             $this->files = new FileCollection();
@@ -102,9 +155,16 @@ class Request
      * Retrieves a single file by the name of the input field used
      * to upload it.
      *
+     * @param string $fileID
+     * 
      * @return FileUploaded|null
+     * 
+     * Created at: 11/24/2022, 2:28:40 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
      */
-    public function getFile(string $fileID)
+    public function getFile(string $fileID):FileUploaded|null
     {
         if ($this->files === null) {
             $this->files = new FileCollection();
@@ -113,13 +173,64 @@ class Request
         return $this->files->getFile($fileID);
     }
 
-    public function isGet()
+    /**
+     * [Description for isGet]
+     *
+     * @return bool
+     * 
+     * Created at: 11/24/2022, 2:30:00 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function isGet():bool
     {
         return $this->Method() === 'get';
     }
 
-    public function isPost()
+    /**
+     * [Description for isPost]
+     *
+     * @return bool
+     * 
+     * Created at: 11/24/2022, 2:30:05 PM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function isPost():bool
     {
         return $this->Method() === 'post';
     }
+
+	/**
+	 * [Description for getRouteArgs]
+	 *
+	 * @return array
+	 * 
+	 * Created at: 11/24/2022, 2:30:19 PM (Africa/Lagos)
+	 * @author     Wizarphics <wizarphics@gmail.com> 
+	 * @see       {@link https://wizarphics.com} 
+	 * @copyright Wizarphics 
+	 */
+	public function getRouteArgs(): array {
+		return $this->routeArgs;
+	}
+
+	/**
+	 * [Description for setRouteArgs]
+	 *
+	 * @param array $routeArgs
+	 * 
+	 * @return self
+	 * 
+	 * Created at: 11/24/2022, 2:30:28 PM (Africa/Lagos)
+	 * @author     Wizarphics <wizarphics@gmail.com> 
+	 * @see       {@link https://wizarphics.com} 
+	 * @copyright Wizarphics 
+	 */
+	public function setRouteArgs(array $routeArgs): self {
+		$this->routeArgs = $routeArgs;
+		return $this;
+	}
 }
