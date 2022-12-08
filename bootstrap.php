@@ -31,8 +31,6 @@ Sage::$cliDetection = true;
 
 // saged(Application::$app); // dump any number of parameters
 
-
-
 /*
  * ---------------------------------------------------------------
  * GRAB OUR CONSTANTS & COMMON
@@ -40,7 +38,7 @@ Sage::$cliDetection = true;
  */
 // Require app configs/Constants.php file if exists.
 if (file_exists(ROOT_DIR . '/configs/Constants.php'))
-    require_once ROOT_DIR . '/configs/constants.php';
+    require_once ROOT_DIR . '/configs/Constants.php';
 
 // Require app configs/Common.php file if exists.
 if (file_exists(ROOT_DIR . '/configs/Common.php'))
@@ -54,6 +52,16 @@ if (file_exists(CORE_DIR . '/configs/Constants.php'))
 if (file_exists(CORE_DIR . '/configs/Common.php'))
     require_once CORE_DIR . '/configs/Common.php';
 
+
+setcookie(
+    env('app.name') . '_id',
+    uniqid(env('app.name'), true),
+    time()+MINUTE,
+    '/',
+    '',
+    false,
+    true
+);
 /*
  * ---------------------------------------------------------------
  * GRAB OUR ROUTES
