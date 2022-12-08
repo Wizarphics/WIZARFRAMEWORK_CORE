@@ -80,6 +80,6 @@ class Form
 
     public function checkbox(Model $model, $attribute, $checkId = null)
     {
-        return new CheckboxField($model, $attribute, $checkId);
+        return new CheckBoxField($model, $attribute, $checkId);
     }
 }
