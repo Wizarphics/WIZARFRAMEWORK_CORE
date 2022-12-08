@@ -2,6 +2,7 @@
 
 use app\configs\Email as AppConfigsEmail;
 use wizarphics\wizarframework\Application;
+use wizarphics\wizarframework\auth\Authentication;
 use wizarphics\wizarframework\configs\Email as ConfigsEmail;
 use wizarphics\wizarframework\Csrf;
 use wizarphics\wizarframework\email\Email;
@@ -11,6 +12,7 @@ use wizarphics\wizarframework\Model;
 use wizarphics\wizarframework\Session;
 use wizarphics\wizarframework\utilities\debugger\Debug;
 use wizarphics\wizarframework\utilities\debugger\Functions;
+
 
 /*
  * ---------------------------------------------------------------
@@ -49,6 +51,33 @@ if (!function_exists('env')) {
     }
 }
 
+if (!function_exists('is_index')) {
+    function is_index(array $array): bool
+    {
+        return  array_is_list($array);
+    }
+}
+
+
+
+if (!function_exists('auth')) {
+    function auth()
+    {
+        return new Authentication();
+    }
+}
+
+/**
+ * Determines if an array is associative.
+ * @param  array  $array
+ * @return bool
+ */
+function is_assoc(array $array)
+{
+    $keys = array_keys($array);
+
+    return array_keys($keys) !== $keys;
+}
 
 if (!function_exists('session')) {
     /**
@@ -63,19 +92,40 @@ if (!function_exists('session')) {
      *
      * @return mixed|Session|null
      */
-    function session(?string $val = null)
+    function session(?string $key = null)
     {
         $session = Application::$app->session;
-
         // Returning a single item?
-        if (is_string($val)) {
-            return $session->get($val);
+        if (is_string($key)) {
+            return $session->get($key);
         }
 
         return $session;
     }
 }
 
+if (!function_exists('getFlashMessage')) {
+    function getFlashMessage($key)
+    {
+        $flash = session()->getFlash($key);
+        $message = $flash['message'];
+        return is_string($message) ? _($message) : $message;
+    }
+}
+
+if (!function_exists('getFlashTime')) {
+    function getFlashTime(array $flash, bool $asAgo = true)
+    {
+        return $asAgo ? time_ago($flash['time_set']) : $flash['time_set'];
+    }
+}
+
+if (!function_exists('flash')) {
+    function flash($key)
+    {
+        return (object)(session()->getFlash($key));
+    }
+}
 
 if (!function_exists('csrfToken')) {
     function csrfToken()
@@ -132,13 +182,13 @@ if (!function_exists('function_usable')) {
 }
 
 if (!function_exists('log_message')) {
-    function log_message(string $key, string $message)
+    function log_message(string $key, string|array $message)
     {
         $dbg = new Debug();
         $dbf = new Functions();
         $dbf->writeLog(json_encode([$key => $message]));
         if ($key == 'error') {
-            error_log($message);
+            error_log(json_encode($message));
         }
     }
 }
@@ -412,5 +462,35 @@ if (!function_exists('submit_button')) {
     {
         $form = new Form;
         return $form->submit_btn($model, $attribute, $fieldAttributes);
+    }
+}
+
+if (!function_exists('time_ago')) {
+    function time_ago(string $date)
+    {
+        $seconds  = strtotime(date('Y-m-d H:i:s')) - strtotime($date);
+
+        $years = floor($seconds / YEAR);
+        $months = floor($seconds / MONTH);
+        $day = floor($seconds / DAY);
+        $hours = floor($seconds / HOUR);
+        $mins = floor(($seconds - ($hours * HOUR)) / MINUTE);
+        $secs = floor($seconds % MINUTE);
+
+        if ($seconds < SECOND)
+            $time = 'Just Now';
+        else if ($seconds < MINUTE)
+            $time = $secs . " " . $secs <= 1 ? "second" : "seconds" . " ago";
+        else if ($seconds < HOUR)
+            $time = $mins . " " . $mins <= 1 ? "min" : "mins" . " ago";
+        else if ($seconds < DAY)
+            $time = $hours . " " . $hours <= 1 ? "hour" : "hours" . " ago";
+        else if ($seconds < MONTH)
+            $time = $day . " " . $day <= 1 ? "day" : "days" . " ago";
+        else if ($seconds < YEAR)
+            $time =  $months . " " . $months <= 1 ? "month" : "months" . " ago";
+        else
+            $time = $years . " " . $years < 1 ? "year" : "years" . " ago";
+        return $time;
     }
 }
