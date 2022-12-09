@@ -11,7 +11,7 @@
             "wizarphics\\wizarframework\\": "."
         }
     },
-    "require-dev": {
+    "require": {
         "php-sage/sage": "^1.2"
     }
 }
