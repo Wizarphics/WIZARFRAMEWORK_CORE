@@ -96,9 +96,6 @@ class Router
             }
         }
 
-        if (is_string($callback)) {
-            return Application::$app->view->renderView($callback);
-        }
         if (is_array($callback)) {
             /**
              * @var Controller $controller
@@ -126,6 +123,12 @@ class Router
             } else {
                 return call_user_func($callback, $this->request, $this->response);
             }
+        } elseif (is_callable($callback)) {
+            return call_user_func($callback);
+        } elseif (is_string($callback)) {
+            return Application::$app->view->renderView($callback);
+        } else {
+            throw new \BadMethodCallException;
         }
     }
 
