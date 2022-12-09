@@ -9,7 +9,7 @@ defined('ROOT_DIR') or define('ROOT_DIR', Application::$ROOT_DIR);
 defined('CORE_DIR') or define('CORE_DIR', Application::$CORE_DIR);
 defined('STOREPATH') or define('STOREPATH', ROOT_DIR . '/storage/');
 defined('PUBLICPATH') or define('PUBLICPATH', ROOT_DIR . '/public/');
-require_once CORE_DIR . '/vendor/autoload.php';
+require_once ROOT_DIR . '/vendor/autoload.php';
 
 
 /*
