@@ -17,5 +17,12 @@ use wizarphics\wizarframework\db\DbModel;
 
 abstract class UserModel extends DbModel
 {
+    protected $passwordHandler;
+
+    public function __construct()
+    {
+        $this->passwordHandler = new PasswordHandler();
+    }
+
     abstract public function getDisplayName(): string;
 }
