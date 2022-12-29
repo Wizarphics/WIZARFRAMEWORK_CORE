@@ -12,7 +12,8 @@
 
 namespace wizarphics\wizarframework;
 
-use wizarphics\wizarframework\Request;
+use PageExpiredException;
+use wizarphics\wizarframework\http\Request;
 
 class Csrf
 {
@@ -85,7 +86,11 @@ class Csrf
 
     public static function verify(Request $request): bool
     {
-        return self::verifyHash($request);
+        $verified = self::verifyHash($request);
+        if(!$verified){
+            throw new PageExpiredException();
+        }
+        return $verified;
     }
 
     protected static function getPostedToken(Request $request): ?string
