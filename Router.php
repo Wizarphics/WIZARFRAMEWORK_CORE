@@ -13,13 +13,18 @@
 
 namespace wizarphics\wizarframework;
 
+use RuntimeException;
 use wizarphics\wizarframework\exception\NotFoundException;
+use wizarphics\wizarframework\http\Request;
+use wizarphics\wizarframework\http\Response;
 
 class Router
 {
     public Request $request;
     public Response $response;
     protected array $routes = [];
+
+    private string $method;
 
     private array $definedPlaceholder = [
         '(:num)' => '[0-9]+$',
@@ -56,7 +61,7 @@ class Router
      * @param string $path
      * @param callable|\closure|array $callback
      * 
-     * @return [type]
+     * @return self
      * 
      * Created at: 11/24/2022, 2:36:59 PM (Africa/Lagos)
      * @author     Wizarphics <wizarphics@gmail.com> 
@@ -65,7 +70,8 @@ class Router
      */
     public function get(string $path, callable|\closure|array $callback)
     {
-        $this->routes['get'][$path] = $callback;
+        $this->create('get', $path, $callback);
+        return $this;
     }
 
     /**
@@ -96,6 +102,12 @@ class Router
             }
         }
 
+        if (isset($callback['route'][$path])) {
+            $callback = $callback['route'][$path];
+        }else{
+            throw new NotFoundException;
+        };
+
         if (is_array($callback)) {
             /**
              * @var Controller $controller
@@ -119,7 +131,7 @@ class Router
                 }
                 unset($callback['args']);
 
-                return call_user_func_array($callback, $args);
+                return call_user_func_array($callback, ...$args);
             } else {
                 return call_user_func($callback, $this->request, $this->response);
             }
@@ -306,6 +318,19 @@ class Router
         }
     }
 
+
+    protected function create(string|array $verb, string $from, $to, ?array $options = [])
+    {
+        $verbs = (array) $verb;
+        foreach ($verbs as $verb) {
+            $name = $options['name'] ?? $from;
+            $this->routes[$verb][$name] = [
+                'route' => [$from => $to],
+            ];
+            $this->method = $verb;
+        }
+    }
+
     /**
      * [Description for post]
      *
@@ -320,7 +345,8 @@ class Router
      */
     public function post(string $path, callable|\closure|array $callback)
     {
-        $this->routes['post'][$path] = $callback;
+        $this->create('post', $path, $callback);
+        return $this;
     }
 
 
@@ -338,7 +364,8 @@ class Router
      */
     public function cli(string $path, callable|\closure|array $callback)
     {
-        $this->routes['cli'][$path] = $callback;
+        $this->create('cli', $path, $callback);
+        return $this;
     }
 
     /**
@@ -354,8 +381,7 @@ class Router
      */
     public function getPost(string $path, callable|\closure|array $callback)
     {
-        $this->routes['get'][$path] = $callback;
-        $this->routes['post'][$path] = $callback;
+        $this->create(['get', 'post'], $path, $callback);
     }
 
     /**
@@ -372,6 +398,110 @@ class Router
      */
     public function delete(string $path, callable|\closure|array $callback)
     {
-        $this->routes['delete'][$path] = $callback;
+        $this->create('delete', $path, $callback);
+        return $this;
+    }
+
+    public function name($name)
+    {
+        $this->routes[$this->method][$name] = end($this->routes[$this->method]);
+    }
+
+    /**
+     * Attempts to look up a route based on its destination.
+     *
+     * If a route exists:
+     *
+     *      'path/(:any)/(:any)' => 'Controller::method/$1/$2'
+     *
+     * This method allows you to know the Controller and method
+     * and get the route that leads to it.
+     *
+     *      // Equals 'path/$param1/$param2'
+     *      reverseRoute('Controller::method', $param1, $param2);
+     *
+     * @param string     $search    Named route or Controller::method
+     * @param int|string ...$params One or more parameters to be passed to the route
+     *
+     * @return false|string
+     */
+    public function getRouteTo(string $search, ...$params)
+    {
+        // Named routes get higher priority.
+        foreach ($this->routes as $collection) {
+            if (array_key_exists($search, $collection)) {
+                $route = $this->fillRouteParams(key($collection[$search]['route']), $params);
+
+                return ($route);
+            }
+        }
+
+        // If it's not a named route, then loop over
+        // all routes to find a match.
+        foreach ($this->routes as $collection) {
+            foreach ($collection as $route) {
+                $from = key($route['route']);
+                $to   = $route['route'][$from];
+
+                // ignore closures
+                if (!is_string($to)) {
+                    continue;
+                }
+
+                // Lose any namespace slash at beginning of strings
+                // to ensure more consistent match.
+                $to     = ltrim($to, '\\');
+                $search = ltrim($search, '\\');
+
+                // If there's any chance of a match, then it will
+                // be with $search at the beginning of the $to string.
+                if (strpos($to, $search) !== 0) {
+                    continue;
+                }
+
+                // Ensure that the number of $params given here
+                // matches the number of back-references in the route
+                if (substr_count($to, '$') !== count($params)) {
+                    continue;
+                }
+
+                $route = $this->fillRouteParams($from, $params);
+
+                return ($route);
+            }
+        }
+
+        // If we're still here, then we did not find a match.
+        return false;
+    }
+
+    /**
+     * Given a
+     *
+     * @throws RuntimeException
+     */
+    protected function fillRouteParams(string $from, ?array $params = null): string
+    {
+        // Find all of our back-references in the original route
+        preg_match_all('/\(([^)]+)\)/', $from, $matches);
+
+        if (empty($matches[0])) {
+            return '/' . ltrim($from, '/');
+        }
+
+        // Build our resulting string, inserting the $params in
+        // the appropriate places.
+        foreach ($matches[0] as $index => $pattern) {
+            if (!preg_match('#^' . $pattern . '$#u', $params[$index])) {
+                throw new RuntimeException('A parameter does not match the expected type.');
+            }
+
+            // Ensure that the param we're inserting matches
+            // the expected param type.
+            $pos  = strpos($from, $pattern);
+            $from = substr_replace($from, $params[$index], $pos, strlen($pattern));
+        }
+
+        return '/' . ltrim($from, '/');
     }
 }

@@ -9,8 +9,8 @@ defined('ROOT_DIR') or define('ROOT_DIR', Application::$ROOT_DIR);
 defined('CORE_DIR') or define('CORE_DIR', Application::$CORE_DIR);
 defined('STOREPATH') or define('STOREPATH', ROOT_DIR . '/storage/');
 defined('PUBLICPATH') or define('PUBLICPATH', ROOT_DIR . '/public/');
-require_once ROOT_DIR . '/vendor/autoload.php';
-
+defined('VIEWPATH') or define('VIEWPATH', ROOT_DIR.'/views/');
+defined('ERROR_PATH') or define('ERROR_PATH', VIEWPATH. '/errors/');
 
 /*
  * ---------------------------------------------------------------
@@ -30,6 +30,30 @@ Sage::$appRootDirs = [
 Sage::$cliDetection = true;
 
 // saged(Application::$app); // dump any number of parameters
+
+/*
+ * ---------------------------------------------------------------
+ * Load environment variables from.env file
+ * ---------------------------------------------------------------
+ */
+$dotenv = Dotenv\Dotenv::createImmutable(ROOT_DIR);
+$dotenv->load();
+$dotenv->required(['DB_DSN', 'DB_PASSWORD', 'DB_USER', 'app.userClass']);
+
+
+/*
+ * ---------------------------------------------------------------
+ * SET APPLICATION CONFIGURATION
+ * ---------------------------------------------------------------
+ */
+$APP_CONFIGS = [
+    'userClass' => $_ENV['app.userClass'],
+    'db' => [
+        'dsn' => $_ENV['DB_DSN'],
+        'user' => $_ENV['DB_USER'],
+        'password' => $_ENV['DB_PASSWORD']
+    ]
+];
 
 /*
  * ---------------------------------------------------------------
@@ -53,15 +77,32 @@ if (file_exists(CORE_DIR . '/configs/Common.php'))
     require_once CORE_DIR . '/configs/Common.php';
 
 
+/*
+ * ---------------------------------------------------------------
+ * Create Application Instance
+ * ---------------------------------------------------------------
+ */
+$app = new Application(ROOT_DIR, $APP_CONFIGS);
+
+
 setcookie(
     env('app.name') . '_id',
     uniqid(env('app.name'), true),
-    time()+MINUTE,
+    time() + MINUTE,
     '/',
     '',
     false,
     true
 );
+
+/*
+ * ---------------------------------------------------------------
+ * Define $router variable
+ * ---------------------------------------------------------------
+ */
+$router = $app->router;
+
+
 /*
  * ---------------------------------------------------------------
  * GRAB OUR ROUTES
@@ -75,3 +116,6 @@ if (file_exists(ROOT_DIR . '/routes/web.php'))
     require_once ROOT_DIR . '/routes/web.php';
 else
     throw new NotFoundException(ROOT_DIR . '/routes/web.php is missing.');
+
+
+return $app;
