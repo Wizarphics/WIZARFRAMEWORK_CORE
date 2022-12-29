@@ -6,6 +6,7 @@ use wizarphics\wizarframework\auth\Authentication;
 use wizarphics\wizarframework\configs\Email as ConfigsEmail;
 use wizarphics\wizarframework\Csrf;
 use wizarphics\wizarframework\email\Email;
+use wizarphics\wizarframework\helpers\Escaper;
 use wizarphics\wizarframework\helpers\form\Form;
 use wizarphics\wizarframework\helpers\form\HiddenField;
 use wizarphics\wizarframework\Model;
@@ -492,5 +493,324 @@ if (!function_exists('time_ago')) {
         else
             $time = $years . " " . $years < 1 ? "year" : "years" . " ago";
         return $time;
+    }
+}
+
+if (!function_exists('esc')) {
+    /**
+     * Performs simple auto-escaping of data for security reasons.
+     * Might consider making this more complex at a later date.
+     *
+     * If $data is a string, then it simply escapes and returns it.
+     * If $data is an array, then it loops over it, escaping each
+     * 'value' of the key/value pairs.
+     *
+     * @param array|string $data
+     * @phpstan-param 'html'|'js'|'css'|'url'|'attr'|'raw' $context
+     * @param string|null $encoding Current encoding for escaping.
+     *                              If not UTF-8, we convert strings from this encoding
+     *                              pre-escaping and back to this encoding post-escaping.
+     *
+     * @return array|string
+     *
+     * @throws InvalidArgumentException
+     */
+    function esc($data, string $context = 'html', ?string $encoding = null)
+    {
+        if (is_array($data)) {
+            foreach ($data as &$value) {
+                $value = esc($value, $context);
+            }
+        }
+
+        if (is_string($data)) {
+            $context = strtolower($context);
+
+            // Provide a way to NOT escape data since
+            // this could be called automatically by
+            // the View library.
+            if ($context === 'raw') {
+                return $data;
+            }
+
+            if (!in_array($context, ['html', 'js', 'css', 'url', 'attr'], true)) {
+                throw new InvalidArgumentException('Invalid escape context provided.');
+            }
+
+            $method = $context === 'attr' ? 'escapeHtmlAttr' : 'escape' . ucfirst($context);
+
+            static $escaper;
+            if (!$escaper) {
+                $escaper = new Escaper($encoding);
+            }
+
+            if ($encoding && $escaper->getEncoding() !== $encoding) {
+                $escaper = new Escaper($encoding);
+            }
+
+            $data = $escaper->{$method}($data);
+        }
+
+        return $data;
+    }
+}
+
+
+// CodeIgniter Array Helpers
+
+if (!function_exists('dot_array_search')) {
+    /**
+     * Searches an array through dot syntax. Supports
+     * wildcard searches, like foo.*.bar
+     *
+     * @return array|bool|int|object|string|null
+     */
+    function dot_array_search(string $index, array $array)
+    {
+        // See https://regex101.com/r/44Ipql/1
+        $segments = preg_split(
+            '/(?<!\\\\)\./',
+            rtrim($index, '* '),
+            0,
+            PREG_SPLIT_NO_EMPTY
+        );
+
+        $segments = array_map(static fn ($key) => str_replace('\.', '.', $key), $segments);
+
+        return _array_search_dot($segments, $array);
+    }
+}
+
+if (!function_exists('_array_search_dot')) {
+    /**
+     * Used by `dot_array_search` to recursively search the
+     * array with wildcards.
+     *
+     * @internal This should not be used on its own.
+     *
+     * @return mixed
+     */
+    function _array_search_dot(array $indexes, array $array)
+    {
+        // If index is empty, returns null.
+        if ($indexes === []) {
+            return null;
+        }
+
+        // Grab the current index
+        $currentIndex = array_shift($indexes);
+
+        if (!isset($array[$currentIndex]) && $currentIndex !== '*') {
+            return null;
+        }
+
+        // Handle Wildcard (*)
+        if ($currentIndex === '*') {
+            $answer = [];
+
+            foreach ($array as $value) {
+                if (!is_array($value)) {
+                    return null;
+                }
+
+                $answer[] = _array_search_dot($indexes, $value);
+            }
+
+            $answer = array_filter($answer, static fn ($value) => $value !== null);
+
+            if ($answer !== []) {
+                if (count($answer) === 1) {
+                    // If array only has one element, we return that element for BC.
+                    return current($answer);
+                }
+
+                return $answer;
+            }
+
+            return null;
+        }
+
+        // If this is the last index, make sure to return it now,
+        // and not try to recurse through things.
+        if (empty($indexes)) {
+            return $array[$currentIndex];
+        }
+
+        // Do we need to recursively search this value?
+        if (is_array($array[$currentIndex]) && $array[$currentIndex] !== []) {
+            return _array_search_dot($indexes, $array[$currentIndex]);
+        }
+
+        // Otherwise, not found.
+        return null;
+    }
+}
+
+if (!function_exists('array_deep_search')) {
+    /**
+     * Returns the value of an element at a key in an array of uncertain depth.
+     *
+     * @param mixed $key
+     *
+     * @return mixed|null
+     */
+    function array_deep_search($key, array $array)
+    {
+        if (isset($array[$key])) {
+            return $array[$key];
+        }
+
+        foreach ($array as $value) {
+            if (is_array($value) && ($result = array_deep_search($key, $value))) {
+                return $result;
+            }
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('array_sort_by_multiple_keys')) {
+    /**
+     * Sorts a multidimensional array by its elements values. The array
+     * columns to be used for sorting are passed as an associative
+     * array of key names and sorting flags.
+     *
+     * Both arrays of objects and arrays of array can be sorted.
+     *
+     * Example:
+     *     array_sort_by_multiple_keys($players, [
+     *         'team.hierarchy' => SORT_ASC,
+     *         'position'       => SORT_ASC,
+     *         'name'           => SORT_STRING,
+     *     ]);
+     *
+     * The '.' dot operator in the column name indicates a deeper array or
+     * object level. In principle, any number of sublevels could be used,
+     * as long as the level and column exist in every array element.
+     *
+     * For information on multi-level array sorting, refer to Example #3 here:
+     * https://www.php.net/manual/de/function.array-multisort.php
+     *
+     * @param array $array       the reference of the array to be sorted
+     * @param array $sortColumns an associative array of columns to sort
+     *                           after and their sorting flags
+     */
+    function array_sort_by_multiple_keys(array &$array, array $sortColumns): bool
+    {
+        // Check if there really are columns to sort after
+        if (empty($sortColumns) || empty($array)) {
+            return false;
+        }
+
+        // Group sorting indexes and data
+        $tempArray = [];
+
+        foreach ($sortColumns as $key => $sortFlag) {
+            // Get sorting values
+            $carry = $array;
+
+            // The '.' operator separates nested elements
+            foreach (explode('.', $key) as $keySegment) {
+                // Loop elements if they are objects
+                if (is_object(reset($carry))) {
+                    // Extract the object attribute
+                    foreach ($carry as $index => $object) {
+                        $carry[$index] = $object->{$keySegment};
+                    }
+
+                    continue;
+                }
+
+                // Extract the target column if elements are arrays
+                $carry = array_column($carry, $keySegment);
+            }
+
+            // Store the collected sorting parameters
+            $tempArray[] = $carry;
+            $tempArray[] = $sortFlag;
+        }
+
+        // Append the array as reference
+        $tempArray[] = &$array;
+
+        // Pass sorting arrays and flags as an argument list.
+        return array_multisort(...$tempArray);
+    }
+}
+
+if (!function_exists('array_flatten_with_dots')) {
+    /**
+     * Flatten a multidimensional array using dots as separators.
+     *
+     * @param iterable $array The multi-dimensional array
+     * @param string   $id    Something to initially prepend to the flattened keys
+     *
+     * @return array The flattened array
+     */
+    function array_flatten_with_dots(iterable $array, string $id = ''): array
+    {
+        $flattened = [];
+
+        foreach ($array as $key => $value) {
+            $newKey = $id . $key;
+
+            if (is_array($value) && $value !== []) {
+                $flattened = array_merge($flattened, array_flatten_with_dots($value, $newKey . '.'));
+            } else {
+                $flattened[$newKey] = $value;
+            }
+        }
+
+        return $flattened;
+    }
+}
+
+
+if (!function_exists('route_to')) {
+    /**
+     * Given a controller/method string and any params,
+     * will attempt to build the relative URL to the
+     * matching route.
+     *
+     * NOTE: This requires the controller/method to
+     * have a route defined in the routes file.
+     *
+     * @param string     $method    Named route or Controller::method
+     * @param int|string ...$params One or more parameters to be passed to the route
+     *
+     * @return false|string
+     */
+    function route_to(string $method, ...$params)
+    {
+        return Application::$app->router->getRouteTo($method, ...$params);
+    }
+}
+
+if (!function_exists('__')) {
+    /**
+     * A convenience method to translate a string or array of them and format
+     * the result with the intl extension's MessageFormatter.
+     *
+     * @return string
+     */
+    function __(string $line, array $args = [], ?string $locale = null): string
+    {
+        $language = Application::$app->lang;
+        // Get active locale
+        $activeLocale = $language->getLocale();
+
+        if ($locale && $locale !== $activeLocale) {
+            $language->setLocale($locale);
+        }
+
+        $line = $language->getFormattedLine($line, $args);
+
+        if ($locale && $locale !== $activeLocale) {
+            // Reset to active locale
+            $language->setLocale($activeLocale);
+        }
+
+        return $line;
     }
 }
