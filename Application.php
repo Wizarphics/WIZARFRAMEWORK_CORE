@@ -15,6 +15,9 @@ namespace wizarphics\wizarframework;
 
 use Throwable;
 use wizarphics\wizarframework\db\Database;
+use wizarphics\wizarframework\http\Request;
+use wizarphics\wizarframework\http\Response;
+use wizarphics\wizarframework\language\Language;
 
 class Application
 {
@@ -24,7 +27,7 @@ class Application
     protected array $eventListeners = [];
 
     public static string $ROOT_DIR;
-    public static string $CORE_DIR;
+    public static string $CORE_DIR = (__DIR__) . DIRECTORY_SEPARATOR;
 
     public string $layout = 'main';
 
@@ -37,23 +40,26 @@ class Application
     public Database $db;
     public Session $session;
     public ?UserModel $user;
-
+    public const VERSION = "1.0.5.03";
     public View $view;
+
+    public Language $lang;
 
     public function __construct($rootPath, array $config)
     {
         $this->userClass = $config['userClass'];
         self::$ROOT_DIR = $rootPath;
-        self::$CORE_DIR = (__DIR__) . DIRECTORY_SEPARATOR;
         self::$app = $this;
         $this->request = new Request();
         $this->response = new Response();
         $this->session = new Session();
         $this->router = new Router($this->request, $this->response);
         $this->view = new View();
-
-        $this->db = new Database($config['db']);
-
+        $requestLocale = $this->request->getLocale();
+        $locale = $config['locale'] ?? $requestLocale;
+        $this->lang = new Language($locale);
+        $this->db = Database::getInstance($config['db']);
+        $this->layout = $config['layout'] ?? 'main';
         $primaryValue = $this->session->getValue('user');
         if ($primaryValue) {
             $userClassInstance = new $this->userClass;
@@ -73,23 +79,12 @@ class Application
     {
         log_message('error', [$e->getMessage(), $e->getTraceAsString()]);
         $code = $e->getCode();
-        if (is_string($code)) {
-            $code = 500;
-        }
 
         if (is_cli()) :
             echo $e->getCode();
             exit;
         else :
-            $this->response->setStatusCode($code);
-            if (file_exists(VIEWPATH . '_errors/_' . $code . '.php'))
-                echo $this->view->renderView('_errors/_' . $code, [
-                    'exception' => $e
-                ]);
-            else
-                echo $this->view->renderView('_errors/_exceptions', [
-                    'exception' => $e
-                ]);
+            $this->view->handleException($code, $e);
         endif;
     }
 
@@ -99,17 +94,18 @@ class Application
         $this->triggerEvent(self::EVENT_BEFORE_REQUEST);
         try {
             echo $this->router->resolve();
-        }catch(Throwable $e){
+        } catch (Throwable $e) {
+            $this->response->setStatusCode($e->getCode(), '', $e);
             $this->handleExceptions($e);
         }
         $this->triggerEvent(self::EVENT_AFTER_REQUEST);
     }
 
-    public function triggerEvent($eventName)
+    public function triggerEvent($eventName, ...$args)
     {
         $callbacks = $this->eventListeners[$eventName] ?? [];
         foreach ($callbacks as $callback) {
-            call_user_func($callback);
+            call_user_func($callback, ...$args);
         }
     }
 
