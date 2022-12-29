@@ -13,6 +13,8 @@
 
 namespace wizarphics\wizarframework;
 
+use wizarphics\wizarframework\interfaces\ValidationInterface;
+
 #{AllowDynamicProperties}
 abstract class Model
 {
@@ -24,6 +26,15 @@ abstract class Model
     public const RULE_UNIQUE = 'unique';
     public array $errors = [];
 
+    protected ValidationInterface $validator;
+
+    /**
+     * Class constructor.
+     */
+    public function __construct(ValidationInterface $validator)
+    {
+        $this->validator = $validator;
+    }
 
     /**
      * [Description for loadData]
@@ -37,7 +48,7 @@ abstract class Model
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    public function loadData($data):void
+    public function loadData($data): void
     {
         foreach ($data as $key => $value) {
             if (property_exists($this, $key)) {
@@ -56,7 +67,7 @@ abstract class Model
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    public function validate(): bool
+    public function validatee(): bool
     {
         if (!Csrf::verify(Application::$app->request)) {
             // $this->addError(csrf::tokenFieldName, 'Invalid Request Csrf Token is invalid or missing.');
@@ -106,6 +117,21 @@ abstract class Model
         return empty($this->errors);
     }
 
+    public function validate(?array $data = null, ?array $rules = null): bool
+    {
+        if (!Csrf::verify(Application::$app->request)) {
+            // $this->addError(csrf::tokenFieldName, 'Invalid Request Csrf Token is invalid or missing.');
+            session()->setFlash('error', 'Invalid Request Csrf Token is invalid or missing.');
+
+            return false;
+        };
+
+        $data ??= get_object_vars($this);
+        $rules ??= $this->rules();
+
+        return $this->validator->validate($data, $rules);
+    }
+
     /**
      * [Description for rules]
      *
@@ -146,7 +172,7 @@ abstract class Model
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    private function addErrorFrorRule(string $attribute, string $rule, $params = []):void
+    private function addErrorFrorRule(string $attribute, string $rule, $params = []): void
     {
         $message = $this->errorMessages()[$rule] ?? '';
         $params = array_unique(array_merge($params, ['field' => $this->getLabel($attribute), 'value' => $this->{$attribute}]));
@@ -169,7 +195,7 @@ abstract class Model
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    public function addError(string $attribute, string $message):void
+    public function addError(string $attribute, string $message): void
     {
         $this->errors[$attribute][] = $message;
     }
@@ -184,7 +210,7 @@ abstract class Model
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    public function errorMessages():array
+    public function errorMessages(): array
     {
         return [
             self::RULE_REQUIRED => 'This {field} field is required',
@@ -208,7 +234,7 @@ abstract class Model
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    public function getLabel($attribute):string
+    public function getLabel($attribute): string
     {
         return $this->labels()[$attribute] ?? $attribute;
     }
@@ -225,7 +251,7 @@ abstract class Model
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    public function hasError($attribute):bool|array|string
+    public function hasError($attribute): bool|array|string
     {
         return $this->errors[$attribute] ?? false;
     }
@@ -242,7 +268,7 @@ abstract class Model
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    public function getFirstError($attribute):string|false
+    public function getFirstError($attribute): string|false
     {
         return $this->errors[$attribute][0] ?? false;
     }
