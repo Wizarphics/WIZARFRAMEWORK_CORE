@@ -42,8 +42,12 @@ class ButtonField extends BaseField
         return sprintf(
             '<div class="col-md-12 mb-3">
                 %s
+                %s
+                %s
             </div>',
+            $this->beforeInput,
             $this->as == self::AS_INPUT ? $this->renderInput() : $this->renderButton(),
+            $this->afterInput
         );
     }
 

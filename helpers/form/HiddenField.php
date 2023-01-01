@@ -53,8 +53,14 @@ class HiddenField extends BaseField
     public function __tostring()
     {
         return sprintf(
-            "%s",
+            "
+            %s
+            %s
+            %s
+            ",
+            $this->beforeInput,
             $this->renderInput(),
+            $this->afterInput
         );
     }
 

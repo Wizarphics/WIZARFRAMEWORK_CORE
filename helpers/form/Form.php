@@ -78,8 +78,8 @@ class Form
         return $this->input_button($model, $attribute, $fieldAttributes)->submit();
     }
 
-    public function checkbox(Model $model, $attribute, $checkId = null)
+    public function checkbox(Model $model, $attribute, $value, $checkId = null)
     {
-        return new CheckBoxField($model, $attribute, $checkId);
+        return new CheckBoxField($model, $attribute, $value, $checkId);
     }
 }

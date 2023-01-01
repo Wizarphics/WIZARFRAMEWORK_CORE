@@ -43,9 +43,10 @@ class CheckBoxField extends BaseField
      * @param Model $model
      * @param string $attribute
      */
-    public function __construct(Model $model, string $attribute, string $checkId = null)
+    public function __construct(Model $model, string $attribute, string $value, string $checkId = null)
     {
-        $this->checkId = $checkId ?? $attribute;
+        $this->value = $value;
+        $this->checkId = $checkId ?: $attribute;
         parent::__construct($model, $attribute);
     }
 
@@ -55,13 +56,17 @@ class CheckBoxField extends BaseField
             '
         <div class="form-check %s col-md-12 mb-3">
             %s
+            %s
+            %s
             <label class="form-check-label" for="%s">
                 %s
             </label>
         </div>
         ',
             $this->superClass,
+            $this->beforeInput,
             $this->renderInput(),
+            $this->afterInput,
             $this->checkId,
             $this->model->getLabel($this->attribute)
         ) : sprintf(
