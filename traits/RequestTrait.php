@@ -42,11 +42,14 @@ trait RequestTrait
             return $this->ipAddress;
         }
 
+        
+
         $ipValidator = [
             new BasicFormatRules(),
             'valid_ip',
         ];
 
+        $this->ipAddress = $this->getServer('REMOTE_ADDR');
 
         if (! $ipValidator($this->ipAddress)) {
             return $this->ipAddress = '0.0.0.0';
