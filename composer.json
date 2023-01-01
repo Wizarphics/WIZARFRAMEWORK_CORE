@@ -12,6 +12,7 @@
         }
     },
     "require": {
-        "php-sage/sage": "^1.2"
+        "php-sage/sage": "^1.2",
+        "langleyfoxall/math_eval": "^2.0"
     }
 }
