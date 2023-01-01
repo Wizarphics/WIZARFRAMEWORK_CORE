@@ -17,6 +17,7 @@ use RuntimeException;
 use wizarphics\wizarframework\exception\NotFoundException;
 use wizarphics\wizarframework\http\Request;
 use wizarphics\wizarframework\http\Response;
+use wizarphics\wizarframework\interfaces\ResponseInterface;
 
 class Router
 {
@@ -77,7 +78,7 @@ class Router
     /**
      * [Description for resolve]
      *
-     * @return \Exception|array|string|void
+     * @return \Exception|array|string|void|ResponseInterface
      * 
      * Created at: 11/24/2022, 1:07:04 PM (Africa/Lagos)
      * @author     Wizarphics <wizarphics@gmail.com> 
@@ -89,7 +90,7 @@ class Router
         if (empty($this->routes)) {
             throw new NotFoundException('No route has been defined');
         }
-        $path = $this->request->getPath();
+        $path = urldecode($this->request->getPath());
         $method = $this->request->Method();
 
         $callback = $this->routes[$method][$path] ?? false;
@@ -98,47 +99,57 @@ class Router
 
             if ($callback === false) {
                 // return $this->renderOnlyView('_errors/_404', []);
-                throw new NotFoundException;
+                throw new NotFoundException('Route for "' . $path . '" not found.');
             }
         }
 
-        if (isset($callback['route'][$path])) {
-            $callback = $callback['route'][$path];
-        }else{
-            throw new NotFoundException;
-        };
 
-        if (is_array($callback)) {
+        $callbac = current($callback['route']);
+
+        $args = [];
+        if (array_key_exists('args', $callback)) {
+            $args = $callback['args'];
+            if (is_assoc($args)) {
+                $args['request'] = $this->request;
+                $args['response'] = $this->response;
+            } else {
+                array_push($args, $this->request, $this->response);
+            }
+            unset($callback['args']);
+        }
+
+        if (is_array($callbac)) {
             /**
              * @var Controller $controller
              */
-            $controller = new $callback[0]();
+            $controller = new $callbac[0]();
             Application::$app->controller = $controller;
-            $controller->action = $callback[1];
-            $callback[0] = $controller;
+            $controller->action = $callbac[1];
+            $callbac[0] = $controller;
 
             foreach ($controller->getMiddlewares() as $middleware) {
-                $middleware->execute();
+                $response = $middleware->execute($this->request, $this->response);
+                if ($response instanceof ResponseInterface)
+                    return $response;
             }
 
-            if (array_key_exists('args', $callback)) {
-                $args = $callback['args'];
-                if (is_assoc($args)) {
-                    $args['request'] = $this->request;
-                    $args['response'] = $this->response;
-                } else {
-                    array_push($args, $this->request, $this->response);
+            if (class_exists($controller::class)) {
+                if (!method_exists($controller, $callbac[1])) {
+                    throw new \BadMethodCallException($controller::class . ' does not have method ' . $callbac[1], 400);
                 }
-                unset($callback['args']);
-
-                return call_user_func_array($callback, ...$args);
             } else {
-                return call_user_func($callback, $this->request, $this->response);
+                throw new \BadMethodCallException('Class ' . $controller::class . ' does not exist', 400);
             }
-        } elseif (is_callable($callback)) {
-            return call_user_func($callback);
-        } elseif (is_string($callback)) {
-            return Application::$app->view->renderView($callback);
+
+            if ($args !== []) {
+                return $controller->{$callbac[1]}(...$args);
+            } else {
+                return $controller->{$callbac[1]}($this->request, $this->response);
+            }
+        } elseif (is_callable($callbac)) {
+            return call_user_func($callbac, ...$args);
+        } elseif (is_string($callbac)) {
+            return Application::$app->view->renderView($callbac, $args);
         } else {
             throw new \BadMethodCallException;
         }
@@ -159,7 +170,7 @@ class Router
      */
     public function getCallback(?string $path = null): array|bool
     {
-        $path = $path ?? $this->request->getPath();
+        $path = urldecode($path ?? $this->request->getPath());
         $method = $this->request->Method();
         // Trim all slashes
         $url = trim($path, '/');
