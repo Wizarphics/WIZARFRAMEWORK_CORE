@@ -9,8 +9,8 @@ defined('ROOT_DIR') or define('ROOT_DIR', Application::$ROOT_DIR);
 defined('CORE_DIR') or define('CORE_DIR', Application::$CORE_DIR);
 defined('STOREPATH') or define('STOREPATH', ROOT_DIR . '/storage/');
 defined('PUBLICPATH') or define('PUBLICPATH', ROOT_DIR . '/public/');
-defined('VIEWPATH') or define('VIEWPATH', ROOT_DIR.'/views/');
-defined('ERROR_PATH') or define('ERROR_PATH', VIEWPATH. '/errors/');
+defined('VIEWPATH') or define('VIEWPATH', ROOT_DIR . '/views/');
+defined('ERROR_PATH') or define('ERROR_PATH', VIEWPATH . '/errors/');
 
 /*
  * ---------------------------------------------------------------
