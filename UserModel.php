@@ -13,15 +13,30 @@
 
 namespace wizarphics\wizarframework;
 
+use wizarphics\wizarframework\auth\Password;
 use wizarphics\wizarframework\db\DbModel;
+use wizarphics\wizarframework\interfaces\ValidationInterface;
+use wizarphics\wizarframework\validation\Validation;
 
 abstract class UserModel extends DbModel
 {
     protected $passwordHandler;
 
-    public function __construct()
+    public function __construct(?ValidationInterface $validator = null)
     {
-        $this->passwordHandler = new PasswordHandler();
+        $validator ??= new Validation;
+        parent::__construct($validator);
+        $this->passwordHandler = new Password();
+    }
+
+    public function __get(string $key)
+    {
+        return $this->{$key};
+    }
+
+    public function __set(string $key, mixed $value)
+    {
+        $this->{$key} = $value;
     }
 
     abstract public function getDisplayName(): string;
