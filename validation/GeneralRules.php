@@ -9,7 +9,7 @@
  * the LICENSE file that was distributed with this source code.
  */
 
-namespace wizarphics\wizarframework\Validation;
+namespace wizarphics\wizarframework\validation;
 
 use InvalidArgumentException;
 use wizarphics\wizarframework\Application;
@@ -80,8 +80,8 @@ class GeneralRules
      * accept only one filter).
      *
      * Example:
-     *    is_not_unique[table.field,where_field,where_value]
-     *    is_not_unique[menu.id,active,1]
+     *    is_not_unique:table.field,where_field,where_value
+     *    is_not_unique:menu.id,active,1
      */
     public function is_not_unique(?string $str, string $field): bool
     {
@@ -91,8 +91,11 @@ class GeneralRules
         // Break the table and field apart
         sscanf($field, '%[^.].%[^.]', $table, $field);
 
-        $row = Application::$app->db
-            ->where([$field => $str]);
+        $db = app()->db;
+        /**
+         * @var \wizarphics\wizarframework\db\Database $db
+         */
+        $row = $db->where([$field => $str]);
 
         if (!empty($whereField) && !empty($whereValue) && !preg_match('/^\{(\w+)\}$/', $whereValue)) {
             $row = $row->where([$whereField => $whereValue]);
