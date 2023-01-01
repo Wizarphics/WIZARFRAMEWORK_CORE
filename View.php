@@ -14,6 +14,8 @@ namespace wizarphics\wizarframework;
 
 use RuntimeException;
 use Throwable;
+use wizarphics\wizarframework\exception\NotFoundException;
+use wizarphics\wizarframework\http\Response;
 
 class View
 {
@@ -43,12 +45,13 @@ class View
         return str_replace('{{content}}', $viewContent, $layoutContent);
     }
 
-    protected function layoutContent()
+    protected function layoutContent(?string $layout = null)
     {
-        $layout = Application::$app->layout;
+        $controllerlayout = Application::$app->layout;
         if (Application::$app->controller) {
-            $layout = Application::$app->controller->layout;
+            $controllerlayout = Application::$app->controller->layout;
         }
+        $layout ??= $controllerlayout;
         ob_start();
         include_once VIEWPATH . "layouts/" . $this->getRealPath($layout);
         return ob_get_clean();
@@ -60,6 +63,10 @@ class View
             $$key = $value;
         }
         ob_start();
+        $file = VIEWPATH . $this->getRealPath($view);
+        if (!file_exists($file)) {
+            throw new NotFoundException("$file not found");
+        }
         include_once VIEWPATH . $this->getRealPath($view);
         return ob_get_clean();
     }
@@ -86,6 +93,14 @@ class View
         ob_start();
         include_once $this->getRealPath($view);
         return ob_get_clean();
+    }
+
+    public function renderViewComponent(string $view, string $layout, array $params = []): string
+    {
+        $viewContent = $this->renderView($view, $params);
+        $layoutContent = $this->layoutContent($layout);
+
+        return str_replace('{{content}}', $viewContent, $layoutContent);
     }
 
     /**
@@ -142,22 +157,28 @@ class View
 
     public function handleException(string|int $code, Throwable $exception)
     {
+        /**
+         * @var Response $response
+         */
+        $response = app('response');
         $trace = $exception->getTrace();
         if (file_exists(ERROR_PATH . '_' . $code . '.php'))
-            echo $this->renderCustomView(ERROR_PATH . '_' . $code, [
+            $response->setBody($this->renderCustomView(ERROR_PATH . '_' . $code, [
                 'exception' => $exception
-            ]);
+            ]))->send();
         else
-            echo $this->renderCustomView(ERROR_PATH . '_exceptions', [
-                'exception' => $exception,
-                'title'   => get_class($exception),
-                'type'    => get_class($exception),
-                'code'    => $code,
-                'message' => $exception->getMessage(),
-                'file'    => $exception->getFile(),
-                'line'    => $exception->getLine(),
-                'trace'   => $trace,                
-            ]);
+            $response->setBody(
+                $this->renderCustomView(ERROR_PATH . '_exceptions', [
+                    'exception' => $exception,
+                    'title'   => get_class($exception),
+                    'type'    => get_class($exception),
+                    'code'    => $code,
+                    'message' => $exception->getMessage(),
+                    'file'    => $exception->getFile(),
+                    'line'    => $exception->getLine(),
+                    'trace'   => $trace,
+                ])
+            )->send();
     }
 
     /**
