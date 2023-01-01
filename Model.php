@@ -14,16 +14,20 @@
 namespace wizarphics\wizarframework;
 
 use wizarphics\wizarframework\interfaces\ValidationInterface;
+use wizarphics\wizarframework\validation\Validation;
 
 #{AllowDynamicProperties}
 abstract class Model
 {
     public const RULE_REQUIRED = 'required';
-    public const RULE_EMAIL = 'email';
-    public const RULE_MIN = 'min';
-    public const RULE_MAX = 'max';
-    public const RULE_MATCH = 'match';
-    public const RULE_UNIQUE = 'unique';
+    public const RULE_EMAIL = 'valid_email';
+    public const RULE_MATCH = 'matches';
+    public const RULE_UNIQUE = 'is_unique';
+    public const RULE_ALPHA = 'alpha';
+    public const RULE_ALPHA_SPACE = 'alpha_space';
+    public const RULE_ALPHA_NUM = 'alpha_numeric';
+    public const RULE_MIN = 'min_length';
+    public const RULE_MAX = 'max_length';
     public array $errors = [];
 
     protected ValidationInterface $validator;
@@ -31,8 +35,9 @@ abstract class Model
     /**
      * Class constructor.
      */
-    public function __construct(ValidationInterface $validator)
+    public function __construct(?ValidationInterface $validator)
     {
+        $validator ??= new Validation;
         $this->validator = $validator;
     }
 
@@ -51,70 +56,10 @@ abstract class Model
     public function loadData($data): void
     {
         foreach ($data as $key => $value) {
-            if (property_exists($this, $key)) {
-                $this->{$key} = $value;
-            }
+            // if (property_exists($this, $key)) {
+            $this->{$key} = $value;
+            // }
         }
-    }
-
-    /**
-     * [Description for validate]
-     *
-     * @return bool
-     * 
-     * Created at: 11/24/2022, 2:55:51 PM (Africa/Lagos)
-     * @author     Wizarphics <wizarphics@gmail.com> 
-     * @see       {@link https://wizarphics.com} 
-     * @copyright Wizarphics 
-     */
-    public function validatee(): bool
-    {
-        if (!Csrf::verify(Application::$app->request)) {
-            // $this->addError(csrf::tokenFieldName, 'Invalid Request Csrf Token is invalid or missing.');
-            session()->setFlash('error', 'Invalid Request Csrf Token is invalid or missing.');
-
-            return false;
-        };
-        foreach ($this->rules() as $attribute => $rules) {
-            $value = $this->{$attribute};
-            foreach ($rules as $rule) {
-                $ruleName = $rule;
-                if (!is_string($ruleName)) {
-                    $ruleName = $rule[0];
-                }
-                if ($ruleName === self::RULE_REQUIRED && !$value) {
-                    $this->addErrorFrorRule($attribute, self::RULE_REQUIRED);
-                }
-                if ($ruleName === self::RULE_EMAIL && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                    $this->addErrorFrorRule($attribute, self::RULE_EMAIL);
-                }
-                if ($ruleName === self::RULE_MIN && strlen($value) < $rule['min']) {
-                    $this->addErrorFrorRule($attribute, self::RULE_MIN, $rule);
-                }
-                if ($ruleName === self::RULE_MAX && strlen($value) > $rule['max']) {
-                    $this->addErrorFrorRule($attribute, self::RULE_MAX, $rule);
-                }
-                if ($ruleName === self::RULE_MATCH && $value !== $this->{$rule['match']}) {
-                    $rule['match'] = $this->getLabel($rule['match']);
-                    $this->addErrorFrorRule($attribute, self::RULE_MATCH, $rule);
-                }
-                if ($ruleName === self::RULE_UNIQUE) {
-                    $className = $rule['class'];
-                    $uniqueAttribute = $rule['attribute'] ?? $attribute;
-                    $tableName = $className::tableName();
-                    $SQL = "SELECT * FROM $tableName WHERE $uniqueAttribute = :attr";
-                    $statement = Application::$app->db->prepare($SQL);
-                    $statement->bindValue(":attr", $value);
-                    $statement->execute();
-                    $record = $statement->fetchObject();
-                    if ($record) {
-                        $this->addErrorFrorRule($attribute, self::RULE_UNIQUE, ['field' => $this->getLabel($attribute)]);
-                    }
-                }
-            }
-        }
-
-        return empty($this->errors);
     }
 
     public function validate(?array $data = null, ?array $rules = null): bool
@@ -128,8 +73,20 @@ abstract class Model
 
         $data ??= get_object_vars($this);
         $rules ??= $this->rules();
+        if ($this->validator->validate($data, $rules)) {
+            return true;
+        } else {
+            $this->setErrors($this->validator->getErrors());
+            return false;
+        };
+    }
 
-        return $this->validator->validate($data, $rules);
+    private function setErrors(array $errors): void
+    {
+        array_walk($errors, function (&$error, $field) {
+            $error = str_replace($field, $this->getLabel($field), $error);
+        });
+        $this->errors = $errors;
     }
 
     /**
@@ -157,29 +114,6 @@ abstract class Model
     public function labels(): array
     {
         return [];
-    }
-    /**
-     * [Description for addErrorFrorRule]
-     *
-     * @param string $attribute
-     * @param string $rule
-     * @param array $params
-     * 
-     * @return void
-     * 
-     * Created at: 11/24/2022, 2:56:21 PM (Africa/Lagos)
-     * @author     Wizarphics <wizarphics@gmail.com> 
-     * @see       {@link https://wizarphics.com} 
-     * @copyright Wizarphics 
-     */
-    private function addErrorFrorRule(string $attribute, string $rule, $params = []): void
-    {
-        $message = $this->errorMessages()[$rule] ?? '';
-        $params = array_unique(array_merge($params, ['field' => $this->getLabel($attribute), 'value' => $this->{$attribute}]));
-        foreach ($params as $key => $value) {
-            $message = str_replace("{{$key}}", $value, $message);
-        }
-        $this->errors[$attribute][] = $message;
     }
 
     /**
