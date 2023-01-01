@@ -12,7 +12,8 @@
 
 namespace wizarphics\wizarframework;
 
-use PageExpiredException;
+use PhpToken;
+use wizarphics\wizarframework\exception\PageExpiredException;
 use wizarphics\wizarframework\http\Request;
 
 class Csrf
@@ -54,8 +55,8 @@ class Csrf
 
     protected static function generateHash(Request $request): string
     {
-        $path = $request->getPath();
-        $hash = hash_hmac('sha256', $path, session(self::$PREFIX));
+        $_salt = hash('sha256', $request->header('host')->getValue());
+        $hash = hash_hmac('sha256', $_salt, session(self::$PREFIX));
         return $hash;
     }
 
@@ -79,15 +80,14 @@ class Csrf
         if ($postedHash == null) {
             return false;
         }
-
-        $path = $request->getPath();
-        return self::calcHash($path, $postedHash);
+        $salt = hash('sha256', $request->header('host')->getValue());
+        return self::calcHash($salt, $postedHash);
     }
 
     public static function verify(Request $request): bool
     {
         $verified = self::verifyHash($request);
-        if(!$verified){
+        if (!$verified) {
             throw new PageExpiredException();
         }
         return $verified;
@@ -101,10 +101,10 @@ class Csrf
     }
 
 
-    protected static function calcHash(string $path, string $tokenPosted): bool
+    protected static function calcHash($salt, string $tokenPosted): bool
     {
         self::setKey();
-        $cal = hash_hmac('sha256', $path, session(self::$PREFIX));
+        $cal = hash_hmac('sha256', $salt, session(self::$PREFIX));
         return hash_equals($cal, $tokenPosted);
     }
 
