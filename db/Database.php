@@ -40,6 +40,8 @@ class Database
             $user = $config['user'] ?? '';
             $password = $config['password'] ?? '';
             $this->_pdo = new PDO($dsn, $user, $password);
+            $this->_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->_pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_CLASS);
             // echo 'Database connection established.';
         } catch (\PDOException $e) {
             Application::$app->handleExceptions($e);
@@ -57,7 +59,7 @@ class Database
         return self::$_instance;
     }
 
-    public function runQuery($sql, $params = array())
+    public function runQuery($sql, $params = array(), string|false $fetchClass = false)
     {
         $this->_error = false;
         if ($this->_qeury = $this->_pdo->prepare($sql)) {
@@ -76,7 +78,12 @@ class Database
             }
 
             if ($this->_qeury->execute()) {
-                $this->_results = $this->_qeury->fetchAll(PDO::FETCH_OBJ);
+                if ($fetchClass != false) {
+                    $this->_qeury->setFetchMode(PDO::FETCH_CLASS, $fetchClass);
+                    $this->_results = $this->_qeury->fetchAll();
+                } else {
+                    $this->_results = $this->_qeury->fetchAll(PDO::FETCH_OBJ);
+                }
                 $this->_count = $this->_qeury->rowCount();
             } else {
                 $this->_error = true;
@@ -100,7 +107,7 @@ class Database
         return $this;
     }
 
-    private function _action($action, $table, $where = [])
+    private function _action($action, $table, $where = [], $fetchClass = false)
     {
         if (count($where) > 0) {
             $this->_where($where);
@@ -115,7 +122,7 @@ class Database
         } else {
             $sql = "{$action} FROM `{$table}`;";
         }
-        if (!$this->runQuery($sql, $values)->error()) {
+        if (!$this->runQuery($sql, $values, $fetchClass)->error()) {
             return $this;
         }
 
@@ -163,9 +170,9 @@ class Database
         return "{$field} {$operator} {$pointer}\r\n";
     }
 
-    public function get($select = "*", $where = [], $table = "")
+    public function get($select = "*", $where = [], $table = "", $fetchClass = false)
     {
-        return $this->_action("SELECT $select", $table, $where);
+        return $this->_action("SELECT $select", $table, $where, $fetchClass);
     }
 
     public function delete(array $where, string $table)
@@ -201,12 +208,15 @@ class Database
         return false;
     }
 
-    public function update(string|int $id, array $fields, string $table)
+    public function update(array $fields, string|int|null $id, string $table)
     {
         if (count($fields)) {
+            if ($id != null) {
+                $this->_where(['id' => $id]);
+            }
+
             $set = '';
             $x = 1;
-            $this->_where(['id' => $id]);
 
             $where = $this->_getWhereString();
 
