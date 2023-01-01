@@ -93,9 +93,15 @@ class Application
         set_exception_handler([$this, 'handleExceptions']);
         $this->triggerEvent(self::EVENT_BEFORE_REQUEST);
         try {
-            echo $this->router->resolve();
+            $response = $this->router->resolve();
+            if ($response instanceof Response) {
+                $response->send();
+            } else {
+                echo $response;
+            }
         } catch (Throwable $e) {
-            $this->response->setStatusCode($e->getCode(), '', $e);
+            $code = is_numeric($code = $e->getCode()) ? (int) $code : 500;
+            $this->response->setStatusCode($code, '', $e)->send();
             $this->handleExceptions($e);
         }
         $this->triggerEvent(self::EVENT_AFTER_REQUEST);
