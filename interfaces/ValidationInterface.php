@@ -11,8 +11,6 @@
 
 namespace wizarphics\wizarframework\interfaces;
 
-use wizarphics\wizarframework\traits\RequestInterface;
-
 /**
  * Expected behavior of a validator
  */
@@ -75,7 +73,7 @@ interface ValidationInterface
     /**
      * Sets the error for a specific field. Used by custom validation methods.
      */
-    public function addError(string $rule, array $params = []): ValidationInterface;
+    public function addError(string $field, string $rule, array $params = []): ValidationInterface;
 
     /**
      * Resets the class to a blank slate. Should be called whenever
