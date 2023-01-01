@@ -6,6 +6,10 @@ use DateTime;
 use DateTimeZone;
 use RuntimeException;
 use Throwable;
+use wizarphics\wizarframework\exception\ForbiddenException;
+use wizarphics\wizarframework\http\Cookie;
+use wizarphics\wizarframework\http\CookieHolder;
+use wizarphics\wizarframework\http\Request;
 use wizarphics\wizarframework\http\Response;
 use wizarphics\wizarframework\utilities\formatters\XMLFormatter;
 
@@ -29,6 +33,14 @@ trait ResponseTrait
      * 
      */
     protected $bodyFormat = 'html';
+
+
+    /**
+     * CookieHolder instance.
+     *
+     * @var CookieHolder
+     */
+    protected $CookieHolder;
 
     /**
      * Return an instance with the specified status code and, optionally, reason phrase.
@@ -264,6 +276,160 @@ trait ResponseTrait
     }
 
     /**
+     * Returns the `CookieHolder` instance.
+     *
+     * @return CookieHolder
+     */
+    public function getCookieHolder()
+    {
+        return $this->CookieHolder;
+    }
+
+    /**
+     * Checks to see if the Response has a specified cookie or not.
+     */
+    public function hasCookie(string $name, ?string $value = null, string $prefix = ''): bool
+    {
+        $prefix = $prefix ?: Cookie::setDefaults()['prefix']; // to retain BC
+
+        return $this->CookieHolder->has($name, $prefix, $value);
+    }
+
+    /**
+     * Returns the cookie
+     *
+     * @param string $prefix Cookie prefix.
+     *                       '': the default prefix
+     *
+     * @return Cookie|Cookie[]|null
+     */
+    public function fetchCookie(?string $name = null, string $prefix = '')
+    {
+        if ((string) $name === '') {
+            return $this->CookieHolder->display();
+        }
+
+        try {
+            $prefix = $prefix ?: Cookie::setDefaults()['prefix']; // to retain BC
+
+            return $this->CookieHolder->get($name, $prefix);
+        } catch (RuntimeException $e) {
+            log_message('error', (string) $e);
+
+            return null;
+        }
+    }
+
+    /**
+     * Sets a cookie to be deleted when the response is sent.
+     *
+     * @return $this
+     */
+    public function unsetCookie(string $name = '', string $domain = '', string $path = '/', string $prefix = '')
+    {
+        if ($name === '') {
+            return $this;
+        }
+
+        $prefix = $prefix ?: Cookie::setDefaults()['prefix']; // to retain BC
+
+        $prefixed = $prefix . $name;
+        $store    = $this->CookieHolder;
+        $found    = false;
+
+        /** @var Cookie $cookie */
+        foreach ($store as $cookie) {
+            if ($cookie->getPrefixedName() === $prefixed) {
+                if ($domain !== $cookie->getDomain()) {
+                    continue;
+                }
+
+                if ($path !== $cookie->getPath()) {
+                    continue;
+                }
+
+                $cookie = $cookie->withValue('')->withExpired();
+                $found  = true;
+
+                $this->CookieHolder = $store->put($cookie);
+                break;
+            }
+        }
+
+        if (!$found) {
+            $this->setCookie($name, '', '', $domain, $path, $prefix);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Returns all cookies currently set.
+     *
+     * @return Cookie[]
+     */
+    public function fetchCookies()
+    {
+        return $this->CookieHolder->display();
+    }
+
+    /**
+     * Actually sets the cookies.
+     */
+    protected function sendCookies()
+    {
+        if ($this->pretend) {
+            return;
+        }
+
+        $this->dispatchCookies();
+    }
+
+    private function dispatchCookies(): void
+    {
+        /** @var Request $request */
+        $request = app('request');
+
+        foreach ($this->CookieHolder->display() as $cookie) {
+            if ($cookie->isSecure() && !$request->isSecure()) {
+                throw new ForbiddenException('The action you requested is not allowed.');
+            }
+
+            $name    = $cookie->getPrefixedName();
+            $value   = $cookie->getValue();
+            $options = $cookie->getOptions();
+
+            if ($cookie->isRaw()) {
+                $this->doSetRawCookie($name, $value, $options);
+            } else {
+                $this->doSetCookie($name, $value, $options);
+            }
+        }
+
+        $this->CookieHolder->clear();
+    }
+
+    /**
+     * Extracted call to `setrawcookie()` in order to run unit tests on it.
+     *
+     * @codeCoverageIgnore
+     */
+    private function doSetRawCookie(string $name, string $value, array $options): void
+    {
+        setrawcookie($name, $value, $options);
+    }
+
+    /**
+     * Extracted call to `setcookie()` in order to run unit tests on it.
+     *
+     * @codeCoverageIgnore
+     */
+    private function doSetCookie(string $name, string $value, array $options): void
+    {
+        setcookie($name, $value, $options);
+    }
+
+    /**
      * Sends the headers of this HTTP response to the browser.
      *
      * @return Response
@@ -343,6 +509,70 @@ trait ResponseTrait
         }
 
         $this->setStatusCode($code);
+
+        return $this;
+    }
+
+
+    /**
+     * Set a cookie
+     *
+     * Accepts an arbitrary number of binds (up to 7) or an associative
+     * array in the first parameter containing all the values.
+     *
+     * @param array|Cookie|string $name     Cookie name / array containing binds / Cookie object
+     * @param string              $value    Cookie value
+     * @param string              $expire   Cookie expiration time in seconds
+     * @param string              $domain   Cookie domain (e.g.: '.yourdomain.com')
+     * @param string              $path     Cookie path (default: '/')
+     * @param string              $prefix   Cookie name prefix ('': the default prefix)
+     * @param bool|null           $secure   Whether to only transfer cookies via SSL
+     * @param bool|null           $httponly Whether only make the cookie accessible via HTTP (no javascript)
+     * @param string|null         $samesite
+     *
+     * @return $this
+     */
+    public function setCookie(
+        $name,
+        $value = '',
+        $expire = '',
+        $domain = '',
+        $path = '/',
+        $prefix = '',
+        $secure = null,
+        $httponly = null,
+        $samesite = null
+    ) {
+        if ($name instanceof Cookie) {
+            $this->CookieHolder = $this->CookieHolder->put($name);
+
+            return $this;
+        }
+
+        if (is_array($name)) {
+            // always leave 'name' in last place, as the loop will break otherwise, due to ${$item}
+            foreach (['samesite', 'value', 'expire', 'domain', 'path', 'prefix', 'secure', 'httponly', 'name'] as $item) {
+                if (isset($name[$item])) {
+                    ${$item} = $name[$item];
+                }
+            }
+        }
+
+        if (is_numeric($expire)) {
+            $expire = $expire > 0 ? time() + $expire : 0;
+        }
+
+        $cookie = new Cookie($name, $value, [
+            'expires'  => $expire ?: 0,
+            'domain'   => $domain,
+            'path'     => $path,
+            'prefix'   => $prefix,
+            'secure'   => $secure,
+            'httponly' => $httponly,
+            'samesite' => $samesite ?? '',
+        ]);
+
+        $this->CookieHolder = $this->CookieHolder->put($cookie);
 
         return $this;
     }
