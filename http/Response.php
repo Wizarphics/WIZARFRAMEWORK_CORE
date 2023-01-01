@@ -21,6 +21,7 @@ class Response extends Message implements MessageInterface, ResponseInterface
 {
     use \wizarphics\wizarframework\traits\ResponseTrait;
 
+
     /**
      * HTTP status codes
      *
@@ -74,6 +75,7 @@ class Response extends Message implements MessageInterface, ResponseInterface
         417 => 'Expectation Failed',
         418 => "I'm a teapot", // April's Fools joke; http://www.ietf.org/rfc/rfc2324.txt
         // 419 (Authentication Timeout) is a non-standard status code with unknown origin
+        419 => 'Page Expired',
         421 => 'Misdirected Request', // http://www.iana.org/go/rfc7540 Section 9.1.2
         422 => 'Unprocessable Content', // https://www.iana.org/assignments/http-status-codes/http-status-codes.xml
         423 => 'Locked', // http://www.iana.org/go/rfc4918
@@ -108,6 +110,8 @@ class Response extends Message implements MessageInterface, ResponseInterface
      */
     protected $reason = '';
 
+    protected $pretend = false;
+
     /**
      * The current status code for this response.
      * The status code is a 3-digit integer result code of the server's attempt
@@ -116,6 +120,12 @@ class Response extends Message implements MessageInterface, ResponseInterface
      * @var int
      */
     protected $statusCode = 200;
+
+    public function __construct()
+    {
+        $this->CookieHolder = new CookieHolder([]);
+        $this->setContentType('text/html');
+    }
 
 
     /**
@@ -177,6 +187,8 @@ class Response extends Message implements MessageInterface, ResponseInterface
 
         return $this->statusCode;
     }
+
+
 
     /**
      * Gets the response response phrase associated with the status code.

@@ -16,6 +16,7 @@ namespace wizarphics\wizarframework\http;
 use Locale;
 use wizarphics\wizarframework\files\FileCollection;
 use wizarphics\wizarframework\files\FileUploaded;
+use wizarphics\wizarframework\http\Cookie;
 use wizarphics\wizarframework\interfaces\MessageInterface;
 use wizarphics\wizarframework\interfaces\RequestInterface;
 use wizarphics\wizarframework\traits\RequestTrait;
@@ -60,8 +61,14 @@ class Request extends Message implements MessageInterface, RequestInterface
     /**
      * Class constructor.
      */
-    public function __construct()
+    public function __construct($body = 'php://input')
     {
+        // Get our body from php://input
+        if ($body == 'php://input') {
+            $body = file_get_contents('php://input');
+        }
+
+        $this->body         = !empty($body) ? $body : null;
         $this->validLocales = explode(', ', env('SUPPORTED_LOCALES'));
         $this->populateHeaders();
         // $this->routeArgs = [];
@@ -478,7 +485,7 @@ class Request extends Message implements MessageInterface, RequestInterface
     {
         $this->locale = $this->defaultLocale = env('app.locale');
         if ($this->locale == null) {
-            $this->locale = $this->defaultLocale = $this->validLocales[0];
+            $this->locale = $this->defaultLocale = env('defaultLocale');
         }
         $this->setLocale(in_array($this->locale, $this->validLocales) ? $this->locale : $this->defaultLocale);
     }
