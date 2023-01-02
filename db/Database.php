@@ -23,7 +23,7 @@ class Database
     public PDO $_pdo;
     private \PDOStatement|bool $_qeury;
     private bool $_error = false;
-    private array $_results;
+    private array $_results, $_results_array;
     private int $_count = 0;
 
     private static array $_where = array();
@@ -107,6 +107,17 @@ class Database
         return $this;
     }
 
+    public function whereNotIn(string $column, array $values)
+    {
+        $values = "(" . implode(", ", $values) . ")";
+        $where = [
+            $column, "NOT IN", $values
+        ];
+        $this->_where($where);
+
+        return $this;
+    }
+
     private function _action($action, $table, $where = [], $fetchClass = false)
     {
         if (count($where) > 0) {
@@ -127,6 +138,27 @@ class Database
         }
 
         return false;
+    }
+
+    public function resultArray(): array
+    {
+        if (!empty($this->_results_array)) {
+            return $this->_results_array;
+        }
+
+        if ($this->_error) {
+            return array();
+        }
+
+        if ($this->_results) {
+            array_walk($this->_results, function ($result) {
+                $this->_results_array[] = (array)$result;
+            });
+
+            return $this->_results_array;
+        }
+
+        return array();
     }
 
 
@@ -157,7 +189,7 @@ class Database
             $operator = '=';
             $pointer = ":$field";
         }
-        $operators = ['=', '<', '>', '<=', '>='];
+        $operators = ['=', '<', '>', '<=', '>=', 'NOT IN'];
         if (!in_array($operator, $operators)) {
             $operator = '=';
         }
