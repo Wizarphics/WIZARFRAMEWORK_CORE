@@ -2,6 +2,8 @@
 
 namespace wizarphics\wizarframework;
 
+use wizarphics\wizarframework\http\Request;
+use wizarphics\wizarframework\http\Response;
 use wizarphics\wizarframework\interfaces\GeneratorInterface;
 use wizarphics\wizarframework\traits\GeneratorTrait;
 
@@ -60,25 +62,30 @@ abstract class Generator extends Controller implements GeneratorInterface
         $className = $this->getClassName($filname);
         $namesPACE = $this->getNameSpace($filname);
         $validDir = $this->isValidDIr($filname);
-        $toWriteFile = fopen($this->getPath($filname), 'w+');
-        $temp = $this->getTemp($opts = [
-            '{className}'=>$className,
-            '{nameSpace}'=>$namesPACE
-        ]);
+        $toWriteFile = new File($this->getPath($filname));
+        if ($toWriteFile->isWritable()) {
+            // $toWriteFile = fopen($this->getPath($filname), 'w+');
+            $temp = $this->getTemp($opts = [
+                '{className}' => $className,
+                '{nameSpace}' => $namesPACE
+            ]);
 
-        // dd(get_defined_vars());
+            // dd(get_defined_vars());
 
+            $write = $toWriteFile->openFile('w');
 
-        if ($validDir and $toWriteFile) {
-            if(fwrite($toWriteFile, $temp) !== false){
-                $this->log("File created: " . $this->getPath($filname));
-                return true;
-            };
-            fclose($toWriteFile);
+            if ($validDir && $write->valid()) {
+                if ($write->fwrite($temp) !== false) {
+                    $write->eof();
+                    $this->log("File created: " . $this->getPath($filname));
+                    return true;
+                };
+            }
         }
 
-        $this->log("Failed to create file.");
+        $this->log("Failed to create file. ");
         return false;
+
 
         // dd(get_defined_vars());
     }
