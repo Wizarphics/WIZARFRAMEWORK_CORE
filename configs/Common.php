@@ -4,9 +4,11 @@ use app\configs\Email as AppConfigsEmail;
 use wizarphics\wizarframework\Application;
 use wizarphics\wizarframework\auth\Auth;
 use wizarphics\wizarframework\auth\Authentication;
+use wizarphics\wizarframework\From;
 use wizarphics\wizarframework\configs\Email as ConfigsEmail;
 use wizarphics\wizarframework\Csrf;
 use wizarphics\wizarframework\email\Email;
+use wizarphics\wizarframework\exception\NotFoundException;
 use wizarphics\wizarframework\helpers\Escaper;
 use wizarphics\wizarframework\helpers\form\Form;
 use wizarphics\wizarframework\helpers\form\HiddenField;
@@ -51,7 +53,7 @@ if (!function_exists('app')) {
      * @param mixed $property
      * @param bool $isStatic
      * @param bool $isMethod
-     * @return mixed
+     * @return mixed|Application
      */
     function app($property = null, bool $isStatic = false, bool $isMethod = false): mixed
     {
@@ -128,16 +130,18 @@ if (!function_exists('auth')) {
     }
 }
 
-/**
- * Determines if an array is associative.
- * @param  array  $array
- * @return bool
- */
-function is_assoc(array $array)
-{
-    $keys = array_keys($array);
+if (!function_exists('is_assoc')) {
+    /**
+     * Determines if an array is associative.
+     * @param  array  $array
+     * @return bool
+     */
+    function is_assoc(array $array)
+    {
+        $keys = array_keys($array);
 
-    return array_keys($keys) !== $keys;
+        return array_keys($keys) !== $keys;
+    }
 }
 
 if (!function_exists('session')) {
@@ -1058,5 +1062,36 @@ if (!function_exists('create_link')) {
         }
 
         return $str;
+    }
+}
+
+
+if (!function_exists('fetchConfig')) {
+    /**
+     * A method to fetch a configuration class from the application or core configurations
+     *
+     * @param string $class
+     * @param \BackedEnum<From> $from
+     * @param null $constructorArgs
+     * 
+     * @return object
+     * 
+     * @throws NotFoundException
+     * 
+     * Created at: 1/2/2023, 2:06:32 AM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    function fetchConfig(string $class, From $from = From::any, ...$constructorArgs)
+    {
+        return app()->getConfig($class, $from, ...$constructorArgs);
+    }
+}
+
+if (!function_exists('fecthModel')) {
+    function fetchModel(string $class, From $from = From::any, ...$constructorArgs): Model
+    {
+        return app()->getModel($class, $from, ...$constructorArgs);
     }
 }
