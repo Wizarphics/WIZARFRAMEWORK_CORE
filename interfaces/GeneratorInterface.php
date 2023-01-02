@@ -2,8 +2,8 @@
 
 namespace wizarphics\wizarframework\interfaces;
 
-use wizarphics\wizarframework\Request;
-use wizarphics\wizarframework\Response;
+use wizarphics\wizarframework\http\Request;
+use wizarphics\wizarframework\http\Response;
 
 interface GeneratorInterface
 {
