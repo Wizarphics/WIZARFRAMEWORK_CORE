@@ -36,6 +36,7 @@ class PwdResetController extends BaseController
             $user = $this->userModel->findOne([
                 'email' => $request->getVar('email')
             ]);
+
             $status = $this->pwdResetModel::sendResetLink($user);
 
             // $status === PwdResetModel::RESET_LINK_SENT
@@ -66,18 +67,17 @@ class PwdResetController extends BaseController
         $selector = $request->getVar('selector');
         $model = $this->userModel;
         $valide = $model->validate(
-            $request->postData(['password', 'passwordConfirm', 'validator', 'selector']),
+            $request->postData(['password', 'passwordConfirm', 'token']),
             [
                 'password' => 'required|min_length:8',
                 'passwordConfirm' => 'required|matches:password',
-                'validator' => 'required',
-                'selector' => 'required'
+                'token' => 'required',
             ]
         );
 
         if ($valide) {
             $status = PwdResetModel::reset(
-                $request->postData(['password', 'validator', 'selector']),
+                $request->postData(['password', 'token']),
                 function (UserModel $user, $password) {
                     $user->password = $password;
                     $user->save();

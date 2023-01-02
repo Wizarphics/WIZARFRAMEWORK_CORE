@@ -61,11 +61,11 @@ class PwdResetModel extends DbModel
         }
 
         [$token, $selector] = static::generateResetToken($user);
+        $token_selector = bin2hex($token) . ":" . $selector;
         // Once we have the reset token, we are ready to send the message out to this
         // user with a link to reset their password.
         $url = site_url(route_to('reset-password')) . '?' . http_build_query([
-            'validator' => $token,
-            'selector' => $selector
+            'token' => $token_selector,
         ]);
 
         return static::sendPasswordResetNotification($url, $user);
@@ -120,7 +120,7 @@ class PwdResetModel extends DbModel
         $expires = (new DateTime())->add(DateInterval::createFromDateString('1 Hour'))->format('Y-m-d H:i:s');
         $token = random_bytes(32);
         self::deleteExisting($user);
-        $hashedToken = hash_hmac('sha256', $token, self::$_salt);
+        $hashedToken = self::hashToken($token);
         $pwdResetToken = (new self);
         $pwdResetToken->loadData([
             'pwd_reset_secret' => $email,
@@ -131,6 +131,11 @@ class PwdResetModel extends DbModel
         $pwdResetToken->save();
 
         return [$token, $selector];
+    }
+
+    private static function hashToken(string $token): string|false
+    {
+        return $hashedToken = hash_hmac('sha256', $token, self::$_salt);
     }
 
     private static function deleteExisting(UserModel $user): void
@@ -151,9 +156,10 @@ class PwdResetModel extends DbModel
 
     public static function reset(array $data, callable $callback): string
     {
-        $validator = $data['validator'];
+        $token = explode(':', $data['token']);
+        $validator = $token[0];
         $password = $data['password'];
-        $selector = $data['selector'];
+        $selector = $token[1];
         $SQL = "SELECT * FROM `pwd_reset` WHERE pwd_reset_selector = :pwd_reset_selector AND pwd_reset_expires <= " . (time() + 1800) . ";";
         $stm = (new static)->_db->prepare($SQL);
         $stm->bindValue('pwd_reset_selector', $selector);
@@ -162,14 +168,21 @@ class PwdResetModel extends DbModel
         $pwdToken = $stm->fetch();
         if ($pwdToken === false)
             return static::INVALID_TOKEN;
+
+        $tokenCheck = hash_equals($pwdToken->pwd_reset_token, self::hashToken($validator));
+        if (!$tokenCheck)
+            return static::INVALID_TOKEN;
+
         $tokenEmail = $pwdToken->pwd_reset_secret;
         $user = (new (app()->userClass))->findOne([
             'email' => $tokenEmail,
         ]);
-        if($user === false)
+
+        if ($user === false || $user == null)
             return static::INVALID_USER;
 
         $callback($user, $password);
+        
         return static::PASSWORD_RESET;
     }
 
