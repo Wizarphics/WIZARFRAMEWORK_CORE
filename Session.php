@@ -137,7 +137,7 @@ class Session
      */
     public function get($key = '*'): string|false|array
     {
-        if ($key === "*") {
+        if ($key == "*") {
             $toReturn = [];
             $_exclude = [self::FLASH_KEY];
             $session_keys = array_keys($_SESSION);
@@ -145,6 +145,8 @@ class Session
                 if (!in_array($key, $_exclude, true))
                     $toReturn[$key] = $_SESSION[$key];
             }
+
+            return  $toReturn;
         }
 
         return $_SESSION[$key] ?? false;
