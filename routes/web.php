@@ -14,7 +14,7 @@ use wizarphics\wizarframework\Router;
  * @var Router $router
  */
 
-$router->cli('migration:create/{name}', [Migration::class, 'create']);
+$router->cli('/migration:create/{name}', [Migration::class, 'create']);
 // $router->cli('make:controller/{name}', [Controller::class, 'create']);
 $router->cli('make:controller', [Controller::class, 'create']);
 
