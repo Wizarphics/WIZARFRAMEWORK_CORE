@@ -80,9 +80,9 @@ return [
     'emailActivateMailBody' => 'Please use the code below to activate your account and start using the site.',
     'invalidActivateToken'  => 'The code was incorrect.',
 
-    // Groups
-    'unknownGroup' => '{0} is not a valid group.',
-    'missingTitle' => 'Groups must have a title.',
+    // Roles
+    'unknownRole' => 'Role {0} does not exist.',
+    'missingTitle' => 'Role must have a title.',
 
     // Permissions
     'unknownPermission' => '{0} is not a valid permission.',
