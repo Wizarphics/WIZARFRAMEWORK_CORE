@@ -154,7 +154,7 @@ class SessionAuth implements AuthenticationInterface
     /**
      * Completes login process
      */
-    protected function _completeLogin(User $user): void
+    protected function _completeLogin(UserModel $user): void
     {
         $this->userState = self::STATE_LOGGED_IN;
 
@@ -230,7 +230,7 @@ class SessionAuth implements AuthenticationInterface
     public function isGuest()
     {
         $this->issueUserState();
-        return $this->userState === self::STATE_ANONYMOUS;
+        return $this->userState == self::STATE_ANONYMOUS;
     }
 
     /**
@@ -380,7 +380,7 @@ class SessionAuth implements AuthenticationInterface
     /**
      * Removes any remember-me tokens, if applicable.
      */
-    public function forget(?User $user = null): void
+    public function forget(?UserModel $user = null): void
     {
         $user ??= $this->user;
         if ($user === null) {
@@ -465,17 +465,19 @@ class SessionAuth implements AuthenticationInterface
         /** @var \wizarphics\wizarframework\Session $session */
         $session     = session();
         $sessionData = $session->get();
+
         /**
          * @var Array $sessionData
          */
         if (isset($sessionData)) {
             foreach (array_keys($sessionData) as $key) {
-                $session->remove($key);
+                session()->remove($key);
             }
         }
 
+
         // Regenerate the session ID for a touch of added safety.
-        $session->regenerate(true);
+        session()->regenerate(true);
 
         // Take care of any remember-me functionality
         $this->RememberModel->remove($this->user);
@@ -494,7 +496,7 @@ class SessionAuth implements AuthenticationInterface
      *
      * @see https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence
      */
-    protected function rememberUser(User $user): void
+    protected function rememberUser(UserModel $user): void
     {
         $selector  = bin2hex(random_bytes(12));
         $validator = bin2hex(random_bytes(20));
@@ -551,7 +553,7 @@ class SessionAuth implements AuthenticationInterface
      */
     public function recordActiveDate(): void
     {
-        if (!$this->user instanceof User) {
+        if (!$this->user instanceof UserModel) {
             throw new InvalidArgumentException(
                 __METHOD__ . '() requires logged in user before calling.'
             );

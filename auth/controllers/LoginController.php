@@ -19,7 +19,7 @@ class LoginController extends BaseController
             'loadView', 'loginUserIn'
         ]));
         $this->setLayout('auth');
-        $this->userModel = new User();
+        $this->userModel = new (app()->userClass)();
     }
     public function loadView()
     {
@@ -41,8 +41,8 @@ class LoginController extends BaseController
             ],
             'password' => ['required']
         ]);
+
         if ($valid) {
-            
             $loginAttempt = auth()->attempt([
                 'email' => $request->getVar('email'),
                 'password' => $request->getVar('password'),

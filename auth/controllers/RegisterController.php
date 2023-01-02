@@ -6,9 +6,17 @@ use app\models\User;
 use wizarphics\wizarframework\Controller as BaseController;
 use wizarphics\wizarframework\http\Request;
 use wizarphics\wizarframework\http\Response;
+use wizarphics\wizarframework\UserModel;
 
 class RegisterController extends BaseController
 {
+
+    public UserModel $userModel;
+
+    public function __construct()
+    {
+        $this->userModel = new (app()->userClass)();
+    }
 
     public function loadView(Request $request, Response $response)
     { {
@@ -16,7 +24,7 @@ class RegisterController extends BaseController
                 return redirect(route_to('/'));
             }
 
-            $userModel = new User();
+            $userModel = $this->userModel;
             $this->setLayout('auth');
 
             return $this->render('auth/register', [
@@ -28,7 +36,7 @@ class RegisterController extends BaseController
     public function registerUser(Request $request, Response $response)
     {
 
-        $userModel = new User();
+        $userModel = $this->userModel;
         $this->setLayout('auth');
         if ($request->isPost()) {
             $userModel->loadData($request->postData());
