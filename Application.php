@@ -15,6 +15,7 @@ namespace wizarphics\wizarframework;
 
 use Throwable;
 use wizarphics\wizarframework\db\Database;
+use wizarphics\wizarframework\exception\NotFoundException;
 use wizarphics\wizarframework\http\Request;
 use wizarphics\wizarframework\http\Response;
 use wizarphics\wizarframework\language\Language;
@@ -23,6 +24,9 @@ class Application
 {
     const EVENT_BEFORE_REQUEST = 'beforeRequest';
     const EVENT_AFTER_REQUEST = 'afterRequest';
+
+    protected string $appConfigNameSpace;
+    protected string $appModelNameSpace;
 
     protected array $eventListeners = [];
 
@@ -39,10 +43,8 @@ class Application
     public Response $response;
     public Database $db;
     public Session $session;
-    public ?UserModel $user;
     public const VERSION = "1.0.5.03";
     public View $view;
-
     public Language $lang;
 
     public function __construct($rootPath, array $config)
@@ -60,19 +62,8 @@ class Application
         $this->lang = new Language($locale);
         $this->db = Database::getInstance($config['db']);
         $this->layout = $config['layout'] ?? 'main';
-        $primaryValue = $this->session->getValue('user');
-        if ($primaryValue) {
-            $userClassInstance = new $this->userClass;
-            $primaryKey = $userClassInstance->primaryKey();
-            $this->user = $userClassInstance->findOne([$primaryKey => $primaryValue]);
-        } else {
-            $this->user = null;
-        }
-    }
-
-    public static function isGuest()
-    {
-        return !self::$app->user;
+        $this->appConfigNameSpace = $config['appConfigNameSpace'] ?? '\app\\configs\\';
+        $this->appModelNameSpace = $config['appModelNameSpace'] ?? '\app\\models\\';
     }
 
     public function handleExceptions(Throwable $e)
@@ -136,18 +127,89 @@ class Application
         $this->controller = $controller;
     }
 
-    public function login(UserModel $user)
+    /**
+     * [Description for getConfig]
+     *
+     * @param string $classname
+     * @param From $from
+     * @param null ...$constructorArg
+     * 
+     * @return object
+     * 
+     * @throws NotFoundException
+     * 
+     * Created at: 1/2/2023, 2:05:33 AM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getConfig(string $classname, From $from = From::any, ...$constructorArg): object
     {
-        $this->user = $user;
-        $primaryKey = $user->primaryKey();
-        $primaryValue = $user->{$primaryKey};
-        $this->session->set('user', $primaryValue);
-        return true;
+
+        $appClass = $this->appConfigNameSpace . $classname;
+        $coreClass = __NAMESPACE__ . '\\configs\\' . $classname;
+
+        if ($from != From::any) {
+            $chosen = $$from . 'Class';
+            if (class_exists($chosen)) {
+                return new $chosen(...$constructorArg);
+            } else {
+                throw new NotFoundException('No config class found for ' . $classname . ' was found in the for ' . $from, 400);
+            }
+        }
+
+        if (class_exists($appClass)) {
+            return new $appClass(...$constructorArg);
+        }
+
+        if (class_exists($coreClass)) {
+            return new $coreClass(...$constructorArg);
+        }
+
+        throw new NotFoundException('No config class found for ' . $classname, 400);
     }
 
-    public function logout()
+    /**
+     * [Description for getModel]
+     *
+     * @return Model
+     * 
+     * Created at: 1/2/2023, 2:25:03 AM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getModel(string $classname, From $from = From::any, ...$constructorArg): Model
     {
-        $this->user = null;
-        $this->session->remove('user');
+        $appModel = $this->appModelNameSpace . $classname;
+        $coreModel = __NAMESPACE__ . '\\models\\' . $classname;
+
+        if ($from != From::any) {
+            $chosen = $$from . 'Model';
+            if (class_exists($chosen)) {
+                return new $chosen(...$constructorArg);
+            } else {
+                throw new NotFoundException('No model class found for ' . $classname . ' was found in the for ' . $from, 400);
+            }
+        }
+
+        if (class_exists($appModel)) {
+            return new $appModel(...$constructorArg);
+        }
+
+        if (class_exists($coreModel)) {
+            return new $coreModel(...$constructorArg);
+        }
+
+        throw new NotFoundException('No model class found for ' . $classname, 400);
     }
+}
+
+
+enum From: string
+{
+    case app = 'app';
+    case core = 'core';
+    case any = 'any';
+    case both = 'both';
 }
