@@ -23,6 +23,6 @@ namespace wizarphics\wizarframework\exception;
 
 class ForbiddenException extends \Exception
 {
-    protected $message = 'You don\'t have permission to access this page';
+    protected $message = 'Permission Denied';
     protected $code = 403;
 }

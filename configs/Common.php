@@ -2,16 +2,77 @@
 
 use app\configs\Email as AppConfigsEmail;
 use wizarphics\wizarframework\Application;
+use wizarphics\wizarframework\auth\Auth;
 use wizarphics\wizarframework\auth\Authentication;
+use wizarphics\wizarframework\From;
 use wizarphics\wizarframework\configs\Email as ConfigsEmail;
 use wizarphics\wizarframework\Csrf;
 use wizarphics\wizarframework\email\Email;
+use wizarphics\wizarframework\exception\NotFoundException;
+use wizarphics\wizarframework\helpers\Escaper;
 use wizarphics\wizarframework\helpers\form\Form;
 use wizarphics\wizarframework\helpers\form\HiddenField;
+use wizarphics\wizarframework\http\URI;
 use wizarphics\wizarframework\Model;
 use wizarphics\wizarframework\Session;
 use wizarphics\wizarframework\utilities\debugger\Debug;
 use wizarphics\wizarframework\utilities\debugger\Functions;
+
+
+if (!function_exists('__')) {
+    /**
+     * A convenience method to translate a string or array of them and format
+     * the result with the intl extension's MessageFormatter.
+     *
+     * @return string
+     */
+    function __(string $line, array $args = [], ?string $locale = null): string|array
+    {
+        $language = Application::$app->lang;
+        // Get active locale
+        $activeLocale = $language->getLocale();
+
+        if ($locale && $locale !== $activeLocale) {
+            $language->setLocale($locale);
+        }
+
+        $line = $language->getFormattedLine($line, $args);
+
+        if ($locale && $locale !== $activeLocale) {
+            // Reset to active locale
+            $language->setLocale($activeLocale);
+        }
+
+        return $line;
+    }
+}
+
+if (!function_exists('app')) {
+    /**
+     * 
+     * @param mixed $property
+     * @param bool $isStatic
+     * @param bool $isMethod
+     * @return mixed|Application
+     */
+    function app($property = null, bool $isStatic = false, bool $isMethod = false): mixed
+    {
+        if ($property === null) return Application::$app;
+        if ($isStatic == false) {
+            if ($isMethod)
+                return Application::$app->{$property}();
+            return Application::$app->{$property};
+        }
+
+        if ($isStatic == true) {
+            if ($isMethod)
+                return Application::{$property}();
+            return Application::${$property};
+        }
+
+        return Application::$app;
+    }
+}
 
 
 /*
@@ -26,6 +87,8 @@ if (!function_exists('env')) {
     function env(string $key, $default = null)
     {
         $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+        $dc = get_defined_constants();
+        $value = str_replace(array_keys($dc), array_values($dc), $value);
 
         // Not found? Return the default value
         if ($value === false) {
@@ -63,20 +126,22 @@ if (!function_exists('is_index')) {
 if (!function_exists('auth')) {
     function auth()
     {
-        return new Authentication();
+        return new Auth(new Authentication());
     }
 }
 
-/**
- * Determines if an array is associative.
- * @param  array  $array
- * @return bool
- */
-function is_assoc(array $array)
-{
-    $keys = array_keys($array);
+if (!function_exists('is_assoc')) {
+    /**
+     * Determines if an array is associative.
+     * @param  array  $array
+     * @return bool
+     */
+    function is_assoc(array $array)
+    {
+        $keys = array_keys($array);
 
-    return array_keys($keys) !== $keys;
+        return array_keys($keys) !== $keys;
+    }
 }
 
 if (!function_exists('session')) {
@@ -94,7 +159,10 @@ if (!function_exists('session')) {
      */
     function session(?string $key = null)
     {
-        $session = Application::$app->session;
+        /**
+         * @var Session $session
+         */
+        $session = app()->session;
         // Returning a single item?
         if (is_string($key)) {
             return $session->get($key);
@@ -256,7 +324,7 @@ if (!function_exists('send_email')) {
 if (!function_exists('redirect')) {
     function redirect(string $to)
     {
-        Application::$app->response->redirect($to);
+        return app()->response->redirect($to);
     }
 }
 
@@ -422,10 +490,10 @@ if (!function_exists('textAreaField')) {
 
 
 if (!function_exists('checkBoxField')) {
-    function checkBoxField(Model $model, string $attribute, string $chedkId = '')
+    function checkBoxField(Model $model, string $attribute, $value = 'true', string $chedkId = '')
     {
         $form = new Form;
-        return $form->checkbox($model, $attribute, $chedkId);
+        return $form->checkbox($model, $attribute, $value, $chedkId);
     }
 }
 
@@ -492,5 +560,538 @@ if (!function_exists('time_ago')) {
         else
             $time = $years . " " . $years < 1 ? "year" : "years" . " ago";
         return $time;
+    }
+}
+
+if (!function_exists('esc')) {
+    /**
+     * Performs simple auto-escaping of data for security reasons.
+     * Might consider making this more complex at a later date.
+     *
+     * If $data is a string, then it simply escapes and returns it.
+     * If $data is an array, then it loops over it, escaping each
+     * 'value' of the key/value pairs.
+     *
+     * @param array|string $data
+     * @phpstan-param 'html'|'js'|'css'|'url'|'attr'|'raw' $context
+     * @param string|null $encoding Current encoding for escaping.
+     *                              If not UTF-8, we convert strings from this encoding
+     *                              pre-escaping and back to this encoding post-escaping.
+     *
+     * @return array|string
+     *
+     * @throws InvalidArgumentException
+     */
+    function esc($data, string $context = 'html', ?string $encoding = null)
+    {
+        if (is_array($data)) {
+            foreach ($data as &$value) {
+                $value = esc($value, $context);
+            }
+        }
+
+        if (is_string($data)) {
+            $context = strtolower($context);
+
+            // Provide a way to NOT escape data since
+            // this could be called automatically by
+            // the View library.
+            if ($context === 'raw') {
+                return $data;
+            }
+
+            if (!in_array($context, ['html', 'js', 'css', 'url', 'attr'], true)) {
+                throw new InvalidArgumentException('Invalid escape context provided.');
+            }
+
+            $method = $context === 'attr' ? 'escapeHtmlAttr' : 'escape' . ucfirst($context);
+
+            static $escaper;
+            if (!$escaper) {
+                $escaper = new Escaper($encoding);
+            }
+
+            if ($encoding && $escaper->getEncoding() !== $encoding) {
+                $escaper = new Escaper($encoding);
+            }
+
+            $data = $escaper->{$method}($data);
+        }
+
+        return $data;
+    }
+}
+
+
+// CodeIgniter Array Helpers
+
+if (!function_exists('dot_array_search')) {
+    /**
+     * Searches an array through dot syntax. Supports
+     * wildcard searches, like foo.*.bar
+     *
+     * @return array|bool|int|object|string|null
+     */
+    function dot_array_search(string $index, array $array)
+    {
+        // See https://regex101.com/r/44Ipql/1
+        $segments = preg_split(
+            '/(?<!\\\\)\./',
+            rtrim($index, '* '),
+            0,
+            PREG_SPLIT_NO_EMPTY
+        );
+
+        $segments = array_map(static fn ($key) => str_replace('\.', '.', $key), $segments);
+
+        return _array_search_dot($segments, $array);
+    }
+}
+
+if (!function_exists('_array_search_dot')) {
+    /**
+     * Used by `dot_array_search` to recursively search the
+     * array with wildcards.
+     *
+     * @internal This should not be used on its own.
+     *
+     * @return mixed
+     */
+    function _array_search_dot(array $indexes, array $array)
+    {
+        // If index is empty, returns null.
+        if ($indexes === []) {
+            return null;
+        }
+
+        // Grab the current index
+        $currentIndex = array_shift($indexes);
+
+        if (!isset($array[$currentIndex]) && $currentIndex !== '*') {
+            return null;
+        }
+
+        // Handle Wildcard (*)
+        if ($currentIndex === '*') {
+            $answer = [];
+
+            foreach ($array as $value) {
+                if (!is_array($value)) {
+                    return null;
+                }
+
+                $answer[] = _array_search_dot($indexes, $value);
+            }
+
+            $answer = array_filter($answer, static fn ($value) => $value !== null);
+
+            if ($answer !== []) {
+                if (count($answer) === 1) {
+                    // If array only has one element, we return that element for BC.
+                    return current($answer);
+                }
+
+                return $answer;
+            }
+
+            return null;
+        }
+
+        // If this is the last index, make sure to return it now,
+        // and not try to recurse through things.
+        if (empty($indexes)) {
+            return $array[$currentIndex];
+        }
+
+        // Do we need to recursively search this value?
+        if (is_array($array[$currentIndex]) && $array[$currentIndex] !== []) {
+            return _array_search_dot($indexes, $array[$currentIndex]);
+        }
+
+        // Otherwise, not found.
+        return null;
+    }
+}
+
+if (!function_exists('array_deep_search')) {
+    /**
+     * Returns the value of an element at a key in an array of uncertain depth.
+     *
+     * @param mixed $key
+     *
+     * @return mixed|null
+     */
+    function array_deep_search($key, array $array)
+    {
+        if (isset($array[$key])) {
+            return $array[$key];
+        }
+
+        foreach ($array as $value) {
+            if (is_array($value) && ($result = array_deep_search($key, $value))) {
+                return $result;
+            }
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('array_sort_by_multiple_keys')) {
+    /**
+     * Sorts a multidimensional array by its elements values. The array
+     * columns to be used for sorting are passed as an associative
+     * array of key names and sorting flags.
+     *
+     * Both arrays of objects and arrays of array can be sorted.
+     *
+     * Example:
+     *     array_sort_by_multiple_keys($players, [
+     *         'team.hierarchy' => SORT_ASC,
+     *         'position'       => SORT_ASC,
+     *         'name'           => SORT_STRING,
+     *     ]);
+     *
+     * The '.' dot operator in the column name indicates a deeper array or
+     * object level. In principle, any number of sublevels could be used,
+     * as long as the level and column exist in every array element.
+     *
+     * For information on multi-level array sorting, refer to Example #3 here:
+     * https://www.php.net/manual/de/function.array-multisort.php
+     *
+     * @param array $array       the reference of the array to be sorted
+     * @param array $sortColumns an associative array of columns to sort
+     *                           after and their sorting flags
+     */
+    function array_sort_by_multiple_keys(array &$array, array $sortColumns): bool
+    {
+        // Check if there really are columns to sort after
+        if (empty($sortColumns) || empty($array)) {
+            return false;
+        }
+
+        // Group sorting indexes and data
+        $tempArray = [];
+
+        foreach ($sortColumns as $key => $sortFlag) {
+            // Get sorting values
+            $carry = $array;
+
+            // The '.' operator separates nested elements
+            foreach (explode('.', $key) as $keySegment) {
+                // Loop elements if they are objects
+                if (is_object(reset($carry))) {
+                    // Extract the object attribute
+                    foreach ($carry as $index => $object) {
+                        $carry[$index] = $object->{$keySegment};
+                    }
+
+                    continue;
+                }
+
+                // Extract the target column if elements are arrays
+                $carry = array_column($carry, $keySegment);
+            }
+
+            // Store the collected sorting parameters
+            $tempArray[] = $carry;
+            $tempArray[] = $sortFlag;
+        }
+
+        // Append the array as reference
+        $tempArray[] = &$array;
+
+        // Pass sorting arrays and flags as an argument list.
+        return array_multisort(...$tempArray);
+    }
+}
+
+if (!function_exists('array_flatten_with_dots')) {
+    /**
+     * Flatten a multidimensional array using dots as separators.
+     *
+     * @param iterable $array The multi-dimensional array
+     * @param string   $id    Something to initially prepend to the flattened keys
+     *
+     * @return array The flattened array
+     */
+    function array_flatten_with_dots(iterable $array, string $id = ''): array
+    {
+        $flattened = [];
+
+        foreach ($array as $key => $value) {
+            $newKey = $id . $key;
+
+            if (is_array($value) && $value !== []) {
+                $flattened = array_merge($flattened, array_flatten_with_dots($value, $newKey . '.'));
+            } else {
+                $flattened[$newKey] = $value;
+            }
+        }
+
+        return $flattened;
+    }
+}
+
+
+if (!function_exists('route_to')) {
+    /**
+     * Given a controller/method string and any params,
+     * will attempt to build the relative URL to the
+     * matching route.
+     *
+     * NOTE: This requires the controller/method to
+     * have a route defined in the routes file.
+     *
+     * @param string     $method    Named route or Controller::method
+     * @param int|string ...$params One or more parameters to be passed to the route
+     *
+     * @return false|string
+     */
+    function route_to(string $method, ...$params)
+    {
+        return Application::$app->router->getRouteTo($method, ...$params);
+    }
+}
+
+
+if (!function_exists('_get_uri')) {
+    /**
+     * Used by the other URL functions to build a
+     * framework-specific URI based on the App config.
+     *
+     * @internal Outside of the framework this should not be used directly.
+     *
+     * @param string $relativePath May include queries or fragments
+     *
+     * @throws InvalidArgumentException For invalid paths or config
+     */
+    function _get_uri(string $relativePath = ''): URI
+    {
+        if (env('app.baseURL') === '') {
+            throw new InvalidArgumentException('_get_uri() requires a valid baseURL.', 400);
+        }
+
+        // If a full URI was passed then convert it
+        if (is_int(strpos($relativePath, '://'))) {
+            $full         = new URI($relativePath);
+            $relativePath = URI::createURIString(null, null, $full->getPath(), $full->getQuery(), $full->getFragment());
+        }
+
+        $relativePath = URI::removeDotSegments($relativePath);
+
+        // Build the full URL based on $config and $relativePath
+        $url = rtrim(env('app.baseURL'), '/ ') . '/';
+
+        // Check for an index page
+        if (env('app.indexPage') !== '') {
+            $url .= env('app.indexPage');
+
+            // Check if we need a separator
+            if ($relativePath !== '' && $relativePath[0] !== '/' && $relativePath[0] !== '?') {
+                $url .= '/';
+            }
+        }
+
+        $url .= $relativePath;
+
+        $uri = new URI($url);
+
+        // Check if the baseURL scheme needs to be coerced into its secure version
+        if (env('forceGlobalSecureRequests') && $uri->getScheme() === 'http') {
+            $uri->setScheme('https');
+        }
+
+        return $uri;
+    }
+}
+
+if (!function_exists('site_url')) {
+    /**
+     * Returns a site URL as defined by the App config.
+     *
+     * @param array|string $relativePath URI string or array of URI segments
+     */
+    function site_url($relativePath = '', ?string $scheme = null): string
+    {
+        // Convert array of segments to a string
+        if (is_array($relativePath)) {
+            $relativePath = implode('/', $relativePath);
+        }
+
+        $uri = _get_uri($relativePath);
+
+        return URI::createURIString($scheme ?? $uri->getScheme(), $uri->getAuthority(), $uri->getPath(), $uri->getQuery(), $uri->getFragment());
+    }
+}
+
+if (!function_exists('safe_mailto')) {
+    /**
+     * Encoded Mailto Link
+     *
+     * Create a spam-protected mailto link written in Javascript
+     *
+     * @param string              $email      the email address
+     * @param string              $title      the link title
+     * @param array|object|string $attributes any attributes
+     */
+    function safe_mailto(string $email, string $title = '', $attributes = ''): string
+    {
+        if (trim($title) === '') {
+            $title = $email;
+        }
+
+        $x = str_split('<a href="mailto:', 1);
+
+        for ($i = 0, $l = strlen($email); $i < $l; $i++) {
+            $x[] = '|' . ord($email[$i]);
+        }
+
+        $x[] = '"';
+
+        if ($attributes !== '') {
+            if (is_array($attributes)) {
+                foreach ($attributes as $key => $val) {
+                    $x[] = ' ' . $key . '="';
+
+                    for ($i = 0, $l = strlen($val); $i < $l; $i++) {
+                        $x[] = '|' . ord($val[$i]);
+                    }
+
+                    $x[] = '"';
+                }
+            } else {
+                for ($i = 0, $l = mb_strlen($attributes); $i < $l; $i++) {
+                    $x[] = mb_substr($attributes, $i, 1);
+                }
+            }
+        }
+
+        $x[] = '>';
+
+        $temp = [];
+
+        for ($i = 0, $l = strlen($title); $i < $l; $i++) {
+            $ordinal = ord($title[$i]);
+
+            if ($ordinal < 128) {
+                $x[] = '|' . $ordinal;
+            } else {
+                if (empty($temp)) {
+                    $count = ($ordinal < 224) ? 2 : 3;
+                }
+
+                $temp[] = $ordinal;
+
+                if (count($temp) === $count) {
+                    $number = ($count === 3) ? (($temp[0] % 16) * 4096) + (($temp[1] % 64) * 64) + ($temp[2] % 64) : (($temp[0] % 32) * 64) + ($temp[1] % 64);
+                    $x[]    = '|' . $number;
+                    $count  = 1;
+                    $temp   = [];
+                }
+            }
+        }
+
+        $x[] = '<';
+        $x[] = '/';
+        $x[] = 'a';
+        $x[] = '>';
+
+        $x = array_reverse($x);
+
+        // improve obfuscation by eliminating newlines & whitespace
+
+        $output   = '<script type="text/javascript">'
+            . 'var l=new Array();';
+
+        foreach ($x as $i => $value) {
+            $output .= 'l[' . $i . "] = '" . $value . "';";
+        }
+
+        return $output . ('for (var i = l.length-1; i >= 0; i=i-1) {'
+            . "if (l[i].substring(0, 1) === '|') document.write(\"&#\"+unescape(l[i].substring(1))+\";\");"
+            . 'else document.write(unescape(l[i]));'
+            . '}'
+            . '</script>');
+    }
+}
+
+if (!function_exists('create_link')) {
+    /**
+     * Auto-linker
+     *
+     * Automatically links URL and Email addresses.
+     * Note: There's a bit of extra code here to deal with
+     * URLs or emails that end in a period. We'll strip these
+     * off and add them after the link.
+     *
+     * @param string $str   the string
+     * @param string $type  the type: email, url, or both
+     * @param bool   $popup whether to create pop-up links
+     */
+    function create_link(string $str, string $type = 'both', ?string $title = null, bool $popup = false): string
+    {
+        // Find and replace any URLs.
+        if ($type !== 'email' && preg_match_all('#(\w*://|www\.)[^\s()<>;]+\w#i', $str, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
+            // Set our target HTML if using popup links.
+            $target = ($popup) ? ' target="_blank"' : '';
+
+            // We process the links in reverse order (last -> first) so that
+            // the returned string offsets from preg_match_all() are not
+            // moved as we add more HTML.
+            foreach (array_reverse($matches) as $match) {
+                // $match[0] is the matched string/link
+                // $match[1] is either a protocol prefix or 'www.'
+                //
+                $url_title = $title ??= $match[0][0];
+                // With PREG_OFFSET_CAPTURE, both of the above is an array,
+                // where the actual value is held in [0] and its offset at the [1] index.
+                $a   = '<a href="' . (strpos($match[1][0], '/') ? '' : 'http://') . $match[0][0] . '"' . $target . '>' . $url_title . '</a>';
+                $str = $a;
+            }
+        }
+
+        // Find and replace any emails.
+        if ($type !== 'url' && preg_match_all('#([\w\.\-\+]+@[a-z0-9\-]+\.[a-z0-9\-\.]+[^[:punct:]\s])#i', $str, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach (array_reverse($matches[0]) as $match) {
+                if (filter_var($match[0], FILTER_VALIDATE_EMAIL) !== false) {
+                    $url_title = $title ??= $match[1];
+                    $str = safe_mailto($match[0], $url_title);
+                }
+            }
+        }
+
+        return $str;
+    }
+}
+
+
+if (!function_exists('fetchConfig')) {
+    /**
+     * A method to fetch a configuration class from the application or core configurations
+     *
+     * @param string $class
+     * @param \BackedEnum<From> $from
+     * @param null $constructorArgs
+     * 
+     * @return object
+     * 
+     * @throws NotFoundException
+     * 
+     * Created at: 1/2/2023, 2:06:32 AM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    function fetchConfig(string $class, From $from = From::any, ...$constructorArgs)
+    {
+        return app()->getConfig($class, $from, ...$constructorArgs);
+    }
+}
+
+if (!function_exists('fecthModel')) {
+    function fetchModel(string $class, From $from = From::any, ...$constructorArgs): Model
+    {
+        return app()->getModel($class, $from, ...$constructorArgs);
     }
 }

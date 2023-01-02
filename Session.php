@@ -135,14 +135,31 @@ class Session
      * @see       {@link https://wizarphics.com} 
      * @copyright Wizarphics 
      */
-    public function get($key): string|false|array
+    public function get($key = '*'): string|false|array
     {
+        if ($key == "*") {
+            $toReturn = [];
+            $_exclude = [self::FLASH_KEY];
+            $session_keys = array_keys($_SESSION);
+            foreach ($session_keys as $key) {
+                if (!in_array($key, $_exclude, true))
+                    $toReturn[$key] = $_SESSION[$key];
+            }
+
+            return  $toReturn;
+        }
+
         return $_SESSION[$key] ?? false;
+    }
+
+    public function regenerate(bool $destroy = false)
+    {
+        session_regenerate_id($destroy);
     }
 
     public function getValue($key)
     {
-        return $_SESSION[$key]['message'] ?? false;   
+        return $_SESSION[$key]['message'] ?? false;
     }
 
     /**

@@ -2,12 +2,7 @@
 
 namespace wizarphics\wizarframework\generators;
 
-use wizarphics\wizarframework\Application;
-use wizarphics\wizarframework\File;
-use wizarphics\wizarframework\files\FileCollection;
 use wizarphics\wizarframework\Generator;
-use wizarphics\wizarframework\Request;
-use wizarphics\wizarframework\Response;
 
 class Migration extends Generator
 {

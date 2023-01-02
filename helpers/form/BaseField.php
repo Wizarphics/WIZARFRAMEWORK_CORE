@@ -24,6 +24,9 @@ abstract class BaseField
     public string $id = '';
 
     public string $globalClass = '';
+    public string $superClass = '';
+    public string|false $afterInput = '';
+    public string|false $beforeInput = '';
 
     /**
      * @param Model $model
@@ -46,6 +49,11 @@ abstract class BaseField
             unset($fieldAttributes['class']);
         }
 
+        if (array_key_exists('superClass', $fieldAttributes)) {
+            $this->superClass .= ' ' . $fieldAttributes['superClass'];
+            unset($fieldAttributes['superClass']);
+        }
+
         foreach ($fieldAttributes as $key => $value) {
             if (is_int($key))
                 $fieldAttributesStr[$value] = "true";
@@ -59,16 +67,33 @@ abstract class BaseField
     public function __toString()
     {
         return sprintf(
-            '<div class="col-md-12 mb-3">
+            '<div class="col-md-12 mb-3 %s">
                 <label class="form-label">%s</label>
+                %s
+                %s
                 %s
                 <div class="invalid-feedback">
                     %s
                 </div>
             </div>',
+            $this->superClass,
             $this->model->getLabel(rtrim($this->attribute, '[]')),
+            $this->beforeInput,
             $this->renderInput(),
+            $this->afterInput,
             $this->model->getFirstError($this->attribute)
         );
+    }
+
+    public function append($afterInput)
+    {
+        $this->afterInput = $afterInput;
+        return $this;
+    }
+
+    public function prepend($beforeInput)
+    {
+        $this->beforeInput = $beforeInput;
+        return $this;
     }
 }

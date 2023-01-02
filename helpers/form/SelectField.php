@@ -41,11 +41,15 @@ class SelectField extends BaseField
                 %s
             </label>
             %s
+            %s
+            %s
         </div>
         ',
             $this->id,
             $this->model->getLabel(rtrim($this->attribute, '[]')),
+            $this->beforeInput,
             $this->renderInput(),
+            $this->afterInput
         );
     }
 

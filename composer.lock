@@ -4,29 +4,131 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a54f971cf38e0479151fec3c628ae0f5",
-    "packages": [],
-    "packages-dev": [
+    "content-hash": "1d4edc021d9d2a799cad82eb7569111f",
+    "packages": [
         {
-            "name": "php-sage/sage",
-            "version": "1.2.28",
+            "name": "langleyfoxall/math_eval",
+            "version": "v2.0.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/php-sage/sage.git",
-                "reference": "9d074a9f640b56a16cb2c1419c538fb24464bc9b"
+                "url": "https://github.com/langleyfoxall/math_eval.git",
+                "reference": "f650532d34834dc0af12535f77f194683249bc42"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-sage/sage/zipball/9d074a9f640b56a16cb2c1419c538fb24464bc9b",
-                "reference": "9d074a9f640b56a16cb2c1419c538fb24464bc9b",
+                "url": "https://api.github.com/repos/langleyfoxall/math_eval/zipball/f650532d34834dc0af12535f77f194683249bc42",
+                "reference": "f650532d34834dc0af12535f77f194683249bc42",
+                "shasum": ""
+            },
+            "require": {
+                "mossadal/math-parser": "^1.3",
+                "php": ">=5.6"
+            },
+            "require-dev": {
+                "fzaninotto/faker": "^1.6",
+                "php-coveralls/php-coveralls": "^2.0",
+                "phpunit/phpunit": "^5.7"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/math_eval.php"
+                ],
+                "psr-4": {
+                    "LangleyFoxall\\MathEval\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-3.0-only"
+            ],
+            "authors": [
+                {
+                    "name": "Jordan Hall",
+                    "email": "jordan@langleyfoxall.co.uk"
+                }
+            ],
+            "description": "✖️➕➖➗ `math_eval` safely evaluates mathematical expressions",
+            "support": {
+                "issues": "https://github.com/langleyfoxall/math_eval/issues",
+                "source": "https://github.com/langleyfoxall/math_eval/tree/master"
+            },
+            "time": "2019-09-20T08:13:49+00:00"
+        },
+        {
+            "name": "mossadal/math-parser",
+            "version": "v1.3.16",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mossadal/math-parser.git",
+                "reference": "981b03ca603fd281049e092d75245ac029e13dec"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mossadal/math-parser/zipball/981b03ca603fd281049e092d75245ac029e13dec",
+                "reference": "981b03ca603fd281049e092d75245ac029e13dec",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4.0"
+            },
+            "require-dev": {
+                "phpdocumentor/phpdocumentor": "2.*",
+                "phpunit/php-code-coverage": "6.0.*",
+                "phpunit/phpunit": "7.3.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MathParser\\": "src/MathParser"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Frank Wikström",
+                    "email": "frank@mossadal.se",
+                    "role": "Developer"
+                }
+            ],
+            "description": "PHP parser for mathematical expressions, including elementary functions, variables and implicit multiplication. Also supports symbolic differentiation.",
+            "homepage": "https://github.com/mossadal/math-parser",
+            "keywords": [
+                "mathematics",
+                "parser"
+            ],
+            "support": {
+                "issues": "https://github.com/mossadal/math-parser/issues",
+                "source": "https://github.com/mossadal/math-parser/tree/master"
+            },
+            "time": "2018-09-15T22:20:34+00:00"
+        },
+        {
+            "name": "php-sage/sage",
+            "version": "v1.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-sage/sage.git",
+                "reference": "effadaaf8ff0028d2bfcbb9e26414bf9c5b236ac"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-sage/sage/zipball/effadaaf8ff0028d2bfcbb9e26414bf9c5b236ac",
+                "reference": "effadaaf8ff0028d2bfcbb9e26414bf9c5b236ac",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.1.0"
             },
             "require-dev": {
+                "pestphp/pest": "^1.21",
                 "seld/phar-utils": "^1.2",
-                "symfony/finder": "^3.0 || ^4.0 || ^5.0"
+                "spatie/pest-plugin-snapshots": "^1.1",
+                "symfony/finder": "^3.0 || ^4.0 || ^5.0",
+                "symfony/var-dumper": "^6.1"
             },
             "type": "library",
             "autoload": {
@@ -45,14 +147,16 @@
                 },
                 {
                     "name": "Contributors",
-                    "homepage": "https://github.com/phpsage/sage/contributors"
+                    "homepage": "https://github.com/php-sage/sage/contributors"
                 }
             ],
             "description": "☯ Insightful PHP debugging assistant.",
-            "homepage": "https://github.com/phpsage/sage",
+            "homepage": "https://github.com/php-sage/sage",
             "keywords": [
                 "debug",
                 "debug_backtrace",
+                "dump",
+                "dumper",
                 "json_decode",
                 "php",
                 "sage",
@@ -60,11 +164,12 @@
             ],
             "support": {
                 "issues": "https://github.com/php-sage/sage/issues",
-                "source": "https://github.com/php-sage/sage/tree/1.2.28"
+                "source": "https://github.com/php-sage/sage/tree/v1.3.0"
             },
-            "time": "2022-07-21T16:53:44+00:00"
+            "time": "2022-11-22T16:22:38+00:00"
         }
     ],
+    "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": [],
