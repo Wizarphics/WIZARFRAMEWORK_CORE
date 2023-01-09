@@ -116,6 +116,7 @@ class SessionAuth implements AuthenticationInterface
         unset($credentials['password']);
 
         // Find the existing user
+        /** @var UserModel|null $user */
         $user = $this->userHandler->findOne($credentials);
 
         if ($user === null) {
@@ -467,7 +468,7 @@ class SessionAuth implements AuthenticationInterface
         $sessionData = $session->get();
 
         /**
-         * @var Array $sessionData
+         * @var array $sessionData
          */
         if (isset($sessionData)) {
             foreach (array_keys($sessionData) as $key) {
