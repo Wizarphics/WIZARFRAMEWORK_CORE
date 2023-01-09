@@ -155,32 +155,6 @@ class View
         }
     }
 
-    public function handleException(string|int $code, Throwable $exception)
-    {
-        /**
-         * @var Response $response
-         */
-        $response = app('response');
-        $trace = $exception->getTrace();
-        if (file_exists(ERROR_PATH . '_' . $code . '.php'))
-            $response->setBody($this->renderCustomView(ERROR_PATH . '_' . $code, [
-                'exception' => $exception
-            ]))->send();
-        else
-            $response->setBody(
-                $this->renderCustomView(ERROR_PATH . '_exceptions', [
-                    'exception' => $exception,
-                    'title'   => get_class($exception),
-                    'type'    => get_class($exception),
-                    'code'    => $code,
-                    'message' => $exception->getMessage(),
-                    'file'    => $exception->getFile(),
-                    'line'    => $exception->getLine(),
-                    'trace'   => $trace,
-                ])
-            )->send();
-    }
-
     /**
      * Used within layout views to include additional views.
      *
@@ -189,77 +163,5 @@ class View
     public function include(string $view, array $params = []): string
     {
         return $this->renderOnlyView($view, $params);
-    }
-
-    /**
-     * Creates a syntax-highlighted version of a PHP file.
-     *
-     * @return bool|string
-     */
-    public static function highlightFile(string $file, int $lineNumber, int $lines = 15)
-    {
-        if (empty($file) || !is_readable($file)) {
-            return false;
-        }
-
-        // Set our highlight colors:
-        if (function_exists('ini_set')) {
-            ini_set('highlight.comment', '#767a7e; font-style: italic');
-            ini_set('highlight.default', '#c7c7c7');
-            ini_set('highlight.html', '#06B');
-            ini_set('highlight.keyword', '#f1ce61;');
-            ini_set('highlight.string', '#869d6a');
-        }
-
-        try {
-            $source = file_get_contents($file);
-        } catch (Throwable $e) {
-            return false;
-        }
-
-        $source = str_replace(["\r\n", "\r"], "\n", $source);
-        $source = explode("\n", highlight_string($source, true));
-        $source = str_replace('<br />', "\n", $source[1]);
-        $source = explode("\n", str_replace("\r\n", "\n", $source));
-
-        // Get just the part to show
-        $start = max($lineNumber - (int) round($lines / 2), 0);
-
-        // Get just the lines we need to display, while keeping line numbers...
-        $source = array_splice($source, $start, $lines, true);
-
-        // Used to format the line number in the source
-        $format = '% ' . strlen((string) ($start + $lines)) . 'd';
-
-        $out = '';
-        // Because the highlighting may have an uneven number
-        // of open and close span tags on one line, we need
-        // to ensure we can close them all to get the lines
-        // showing correctly.
-        $spans = 1;
-
-        foreach ($source as $n => $row) {
-            $spans += substr_count($row, '<span') - substr_count($row, '</span');
-            $row = str_replace(["\r", "\n"], ['', ''], $row);
-
-            if (($n + $start + 1) === $lineNumber) {
-                preg_match_all('#<[^>]+>#', $row, $tags);
-
-                $out .= sprintf(
-                    "<span class='line highlight'><span class='number'>{$format}</span> %s\n</span>%s",
-                    $n + $start + 1,
-                    strip_tags($row),
-                    implode('', $tags[0])
-                );
-            } else {
-                $out .= sprintf('<span class="line"><span class="number">' . $format . '</span> %s', $n + $start + 1, $row) . "\n";
-            }
-        }
-
-        if ($spans > 0) {
-            $out .= str_repeat('</span>', $spans);
-        }
-
-        return '<pre class="language-php"><code>' . $out . '</code></pre>';
     }
 }
