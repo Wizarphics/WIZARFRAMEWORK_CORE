@@ -64,6 +64,13 @@ class Schema
      */
     protected $foreignKeys = [];
 
+    /**
+     * UNSIGNED support
+     *
+     * @var array|bool
+     */
+    protected $unsigned = true;
+
     public function __construct()
     {
         $this->db = Application::$app->db;
@@ -190,7 +197,7 @@ class Schema
         $sql = $this->_createTable($table, $attributes);
 
         // dd($sql);
-        
+
 
         if (($result = $this->db->query($sql)) !== false) {
 
@@ -243,7 +250,7 @@ class Schema
 
         foreach (array_keys($attributes) as $key) {
             if (is_string($key)) {
-                $sql .= ' ' . strtoupper($key) . ' ' .$attributes[$key];
+                $sql .= ' ' . strtoupper($key) . ' ' . $attributes[$key];
             }
         }
 
@@ -448,14 +455,15 @@ class Schema
 
     protected function _attributeUnique(array &$attributes, array &$field)
     {
-        if (! empty($attributes['UNIQUE']) && $attributes['UNIQUE'] === true) {
+        if (!empty($attributes['UNIQUE']) && $attributes['UNIQUE'] === true) {
             $field['unique'] = ' UNIQUE';
         }
     }
 
     protected function _attributeAutoIncrement(array &$attributes, array &$field)
     {
-        if (! empty($attributes['AUTO_INCREMENT']) && $attributes['AUTO_INCREMENT'] === true
+        if (
+            !empty($attributes['AUTO_INCREMENT']) && $attributes['AUTO_INCREMENT'] === true
             && stripos($field['type'], 'int') !== false
         ) {
             $field['auto_increment'] = ' AUTO_INCREMENT';
@@ -467,14 +475,14 @@ class Schema
         $sql = '';
 
         for ($i = 0, $c = count($this->primaryKeys); $i < $c; $i++) {
-            if (! isset($this->fields[$this->primaryKeys[$i]])) {
+            if (!isset($this->fields[$this->primaryKeys[$i]])) {
                 unset($this->primaryKeys[$i]);
             }
         }
 
         if ($this->primaryKeys !== []) {
             $sql .= ",\n\tCONSTRAINT " . ('pk_' . $table)
-                    . ' PRIMARY KEY(' . implode(', ', ($this->primaryKeys)) . ')';
+                . ' PRIMARY KEY(' . implode(', ', ($this->primaryKeys)) . ')';
         }
 
         return $sql;
@@ -488,7 +496,7 @@ class Schema
             $this->keys[$i] = (array) $this->keys[$i];
 
             for ($i2 = 0, $c2 = count($this->keys[$i]); $i2 < $c2; $i2++) {
-                if (! isset($this->fields[$this->keys[$i][$i2]])) {
+                if (!isset($this->fields[$this->keys[$i][$i2]])) {
                     unset($this->keys[$i][$i2]);
                 }
             }
@@ -527,10 +535,10 @@ class Schema
 
         foreach ($this->foreignKeys as $fkey) {
             $nameIndex            = $table . '_' . implode('_', $fkey['field']) . '_foreign';
-            $nameIndexFilled      =($nameIndex);
-            $foreignKeyFilled     = implode(', ',($fkey['field']));
-            $referenceTableFilled =($fkey['referenceTable']);
-            $referenceFieldFilled = implode(', ',($fkey['referenceField']));
+            $nameIndexFilled      = ($nameIndex);
+            $foreignKeyFilled     = implode(', ', ($fkey['field']));
+            $referenceTableFilled = ($fkey['referenceTable']);
+            $referenceFieldFilled = implode(', ', ($fkey['referenceField']));
 
             $formatSql = ",\n\tCONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s)";
             $sql .= sprintf($formatSql, $nameIndexFilled, $foreignKeyFilled, $referenceTableFilled, $referenceFieldFilled);
