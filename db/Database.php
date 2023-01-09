@@ -15,12 +15,14 @@ namespace wizarphics\wizarframework\db;
 
 use PDO;
 use wizarphics\wizarframework\Application;
+use wizarphics\wizarframework\AskCli;
+use wizarphics\wizarframework\exception\DatabaseException;
 
 class Database
 {
 
     private static $_instance = null;
-    public PDO $_pdo;
+    protected PDO $_pdo;
     private \PDOStatement|bool $_qeury;
     private bool $_error = false;
     private array $_results, $_results_array;
@@ -30,21 +32,24 @@ class Database
 
     private static array $_whereValues = array();
 
+    private string|int $_lastInsertId = 0;
+
     /**
      * Class constructor.
      */
     private function __construct(array $config)
     {
-        try {
-            $dsn = $config['dsn'] ?? '';
-            $user = $config['user'] ?? '';
-            $password = $config['password'] ?? '';
+        $dsn = $config['dsn'] ?? '';
+        $user = $config['user'] ?? '';
+        $password = $config['password'] ?? '';
+        try{
             $this->_pdo = new PDO($dsn, $user, $password);
             $this->_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->_pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_CLASS);
-            // echo 'Database connection established.';
-        } catch (\PDOException $e) {
-            Application::$app->handleExceptions($e);
+            $this->_pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
+            $this->log('Database connection established.', 'l');
+            $this->set_lastInsertId($this->_pdo->lastInsertId());
+        }catch(\PDOException $e) {
+            throw new DatabaseException($e);
         }
     }
 
@@ -57,6 +62,14 @@ class Database
         self::resest();
 
         return self::$_instance;
+    }
+
+    /**
+     * @return string|int
+     */
+    public function insertId(): string|int
+    {
+        return $this->_lastInsertId;
     }
 
     public function runQuery($sql, $params = array(), string|false $fetchClass = false)
@@ -285,7 +298,6 @@ class Database
 
         $newMigrations = [];
 
-
         assert(defined('MIGRATION_PATH'), 'Constant MIGRATION_PATH is not defined');
         $files = scandir(MIGRATION_PATH);
 
@@ -299,7 +311,13 @@ class Database
 
             $className = pathinfo($migration, PATHINFO_FILENAME);
             $instance = new $className();
+            $count = random_int(50, 100);
             $this->log("Applying migration $migration");
+            $i = 0;
+            do {
+                AskCli::showProgress($i, $count);
+                $i++;
+            } while ($i <= $count);
             $instance->up();
             $this->log("Applied migration $migration");
             $newMigrations[] = $migration;
@@ -315,6 +333,7 @@ class Database
     public function createMigrationsTable()
     {
         if ($this->tableExists('migrations') == false) {
+            $this->log('Creating migrations table', '');
             $sql = "CREATE TABLE migrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 migration VARCHAR(255),
@@ -327,9 +346,18 @@ class Database
 
     public function getAppliedMigrations()
     {
+        $this->log('Fetching applied migrations.', '');
+        $count = random_int(50, 100);
         $sql = "SELECT migration FROM migrations";
         $statement = $this->_pdo->prepare($sql);
+        $i = 0;
+        do {
+            AskCli::showProgress($i, $count);
+            $i++;
+        } while ($i <= $count);
+       
         $statement->execute();
+        $this->log("Fetched applied migrations", '');
 
         return $statement->fetchAll(PDO::FETCH_COLUMN);
     }
@@ -361,8 +389,29 @@ class Database
         return (array_key_exists($table, $tables));
     }
 
-    protected function log($message)
+    protected function log($message, $type = 'i')
     {
-        echo '[' . date('Y-m-d H:i:s') . '] - ' . $message . PHP_EOL;
+        $STR = '[' . date('Y-m-d H:i:s') . '] - ' . $message . PHP_EOL;
+        if (is_cli()) {
+            $color = match ($type) {
+                'i' => 'light_cyan',
+                'e' => 'light_red',
+                's' => 'light_green',
+                'l' => 'cyan',
+                default => 'dark_gray'
+            };
+            AskCli::print($STR, $color);
+        }else{
+            log_message('Database', $STR);
+        }
     }
+
+	/**
+	 * @param string|int $_lastInsertId 
+	 * @return self
+	 */
+	public function set_lastInsertId(string|int $_lastInsertId): self {
+		$this->_lastInsertId = $_lastInsertId;
+		return $this;
+	}
 }

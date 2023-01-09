@@ -24,12 +24,10 @@ abstract class UserModel extends DbModel
 {
     use Authorizable;
 
-
     const STATUS_INACTIVE = 0;
     const STATUS_ACTIVE = 1;
     const STATUS_DELETED = 2;
     public int $status = self::STATUS_INACTIVE;
-
     protected $passwordHandler;
 
     public function __construct(?ValidationInterface $validator = null)
@@ -39,14 +37,15 @@ abstract class UserModel extends DbModel
         $this->passwordHandler = new Password();
     }
 
-    public function __get(string $key)
+
+    public function __get($key)
     {
-        return $this->{$key};
+        return $this->{$key} ?? null;
     }
 
-    public function __set(string $key, mixed $value)
+    public function __set($key, $value)
     {
-        $this->{$key} = $value;
+        return $this->{$key} = $value;
     }
 
     abstract public function getDisplayName(): string;
@@ -59,16 +58,14 @@ abstract class UserModel extends DbModel
             $this->loadData($data);
         }
 
-        if (!$this->id) {
-            $this->assignDefault();
-            $this->status = self::STATUS_INACTIVE;
-            $this->password = $this->passwordHandler->hashPassword($this->password);
-        } else {
+
+        if (!isset($this->id)) {
             $this->status = self::STATUS_ACTIVE;
-            $this->password = $this->passwordHandler->needsRehash($this->password)
-                ? $this->passwordHandler->hashPassword($this->password)
-                : $this->password;
         }
+
+        $this->password = $this->passwordHandler->needsRehash($this->password)
+            ? $this->passwordHandler->hashPassword($this->password)
+            : $this->password;
 
         return parent::save();
     }
@@ -80,24 +77,82 @@ abstract class UserModel extends DbModel
         return $this->save();
     }
 
+    public function status()
+    {
+        $status = $this->status;
+
+        return new userStatus($status);
+    }
+
     public function deactivate()
     {
         $this->status = self::STATUS_INACTIVE;
-
-        return $this->save();
+        return $this->save($this);
     }
 
-    public function assignDefault(): void
+    public function assignDefault(): self
     {
         /** @var PermsRoles $permsRoles */
         $permsRoles = fetchConfig('PermsRoles');
         $default = $permsRoles->defaultRole;
         $allowed = $permsRoles->roles;
 
-        if (empty($default) || !in_array($default, $allowed, true)) {
+        if (empty($default) || !array_key_exists($default, $allowed)) {
             throw new \InvalidArgumentException(__('Auth.unknownRole', [$default]));
         }
 
-        $this->addRole($default);
+        return $this->addRole($default);
+    }
+}
+
+
+enum UserStatusEnum: int
+{
+    case ACTIVE = 0;
+    case IN_ACTIVE = 1;
+    case DELETED = 2;
+    case BLOCKED = 3;
+
+    public function def(): string
+    {
+        return match ($this) {
+            self::ACTIVE => 'Active',
+            self::IN_ACTIVE => 'Inactive',
+            self::DELETED => 'Deleted',
+            self::BLOCKED => 'Blocked',
+            default => throw new \InvalidArgumentException('Invalid value provided' . $this)
+        };
+    }
+}
+class userStatus
+{
+    protected int $status;
+    public function __construct(int $status)
+    {
+        $this->status = $status;
+    }
+    public function __tostring()
+    {
+        return UserStatusEnum::from($this->status)->def();
+    }
+
+    public function isBlocked()
+    {
+        return $this->status == UserStatusEnum::BLOCKED;
+    }
+
+    public function isActive()
+    {
+        return $this->status == UserStatusEnum::ACTIVE;
+    }
+
+    public function isDeleted()
+    {
+        return $this->value == UserStatusEnum::DELETED;
+    }
+
+    public function isInactive()
+    {
+        return !$this->isActive();
     }
 }

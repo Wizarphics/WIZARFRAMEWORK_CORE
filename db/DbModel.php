@@ -41,14 +41,14 @@ abstract class DbModel extends Model
         return $statement->fetchObject(static::class);
     }
 
-    public function find(string|int $id): object|false
+    public function find(string|int $id): object|null
     {
         $tableName = $this->tableName();
         $result = $this->_db->where([$this->primaryKey() => $id])->get("*", [], $tableName, static::class);
         if ($result->count() > 0) {
             return $result->first();
         } else {
-            return false;
+            return null;
         }
     }
 

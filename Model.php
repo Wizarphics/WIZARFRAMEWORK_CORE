@@ -35,7 +35,7 @@ abstract class Model
     /**
      * Class constructor.
      */
-    public function __construct(?ValidationInterface $validator)
+    public function __construct(?ValidationInterface $validator = null)
     {
         $validator ??= new Validation;
         $this->validator = $validator;

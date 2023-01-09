@@ -29,6 +29,8 @@ Sage::$appRootDirs = [
 
 Sage::$cliDetection = true;
 
+Sage::$editor = 'vscode-remote';
+
 // saged(Application::$app); // dump any number of parameters
 
 /*
@@ -86,7 +88,7 @@ $app = new Application(ROOT_DIR, $APP_CONFIGS);
 
 
 setcookie(
-    env('app.name') . '_id',
+    'ASKPHP_id',
     uniqid(env('app.name'), true),
     time() + MINUTE,
     '/',
