@@ -13,15 +13,19 @@
 
 namespace wizarphics\wizarframework;
 
-use Throwable;
+use ReflectionClass;
 use wizarphics\wizarframework\db\Database;
+use wizarphics\wizarframework\Exception as WizarframeworkException;
+use wizarphics\wizarframework\exception\DatabaseException;
 use wizarphics\wizarframework\exception\NotFoundException;
 use wizarphics\wizarframework\http\Request;
 use wizarphics\wizarframework\http\Response;
 use wizarphics\wizarframework\language\Language;
+use wizarphics\wizarframework\traits\ApiResponseTrait;
 
 class Application
 {
+    use ApiResponseTrait;
     const EVENT_BEFORE_REQUEST = 'beforeRequest';
     const EVENT_AFTER_REQUEST = 'afterRequest';
 
@@ -54,47 +58,35 @@ class Application
         self::$app = $this;
         $this->request = new Request();
         $this->response = new Response();
+        $exception = new WizarframeworkException($this->request, $this->response, ERROR_PATH);
+        $exception->setUp();
         $this->session = new Session();
         $this->router = new Router($this->request, $this->response);
         $this->view = new View();
-        $requestLocale = $this->request->getLocale();
-        $locale = $config['locale'] ?? $requestLocale;
-        $this->lang = new Language($locale);
-        $this->db = Database::getInstance($config['db']);
-        $this->layout = $config['layout'] ?? 'main';
-        $this->appConfigNameSpace = $config['appConfigNameSpace'] ?? '\app\\configs\\';
-        $this->appModelNameSpace = $config['appModelNameSpace'] ?? '\app\\models\\';
-    }
-
-    public function handleExceptions(Throwable $e)
-    {
-        log_message('error', [$e->getMessage(), $e->getTraceAsString()]);
-        $code = $e->getCode();
-
-        if (is_cli()) :
-            echo $e->getCode();
-            exit;
-        else :
-            $this->view->handleException($code, $e);
-        endif;
+        try {
+            $requestLocale = $this->request->getLocale();
+            $locale = $config['locale'] ?? $requestLocale;
+            $this->lang = new Language($locale);
+            $this->db = Database::getInstance($config['db']);
+            $this->layout = $config['layout'] ?? 'main';
+            $this->appConfigNameSpace = $config['appConfigNameSpace'] ?? '\app\\configs\\';
+            $this->appModelNameSpace = $config['appModelNameSpace'] ?? '\app\\models\\';
+        }catch(\PDOException $e) {
+            throw new DatabaseException($e);
+        }
     }
 
     public function run()
     {
-        set_exception_handler([$this, 'handleExceptions']);
         $this->triggerEvent(self::EVENT_BEFORE_REQUEST);
-        try {
-            $response = $this->router->resolve();
-            if ($response instanceof Response) {
-                $response->send();
-            } else {
-                echo $response;
-            }
-        } catch (Throwable $e) {
-            $code = is_numeric($code = $e->getCode()) ? (int) $code : 500;
-            $this->response->setStatusCode($code, '', $e)->send();
-            $this->handleExceptions($e);
+        
+        $response = $this->router->resolve();
+        if ($response instanceof Response) {
+            $response->send();
+        } else {
+            print $response;
         }
+
         $this->triggerEvent(self::EVENT_AFTER_REQUEST);
     }
 
@@ -128,7 +120,7 @@ class Application
     }
 
     /**
-     * [Description for getConfig]
+     * Convienient method for fetching configs from either app namespace or core namespace
      *
      * @param string $classname
      * @param From $from
@@ -146,15 +138,48 @@ class Application
     public function getConfig(string $classname, From $from = From::any, ...$constructorArg): object
     {
 
-        $appClass = $this->appConfigNameSpace . $classname;
-        $coreClass = __NAMESPACE__ . '\\configs\\' . $classname;
+        return $this->fetchClass('config class', 'configs', $this->appConfigNameSpace, $classname, $from, ...$constructorArg);
+    }
+
+    /**
+     * Convienient method for fetching models from either app namespace or core namespace
+     *
+     * @return Model
+     * 
+     * @throws NotFoundException
+     * 
+     * Created at: 1/2/2023, 2:25:03 AM (Africa/Lagos)
+     * @author     Wizarphics <wizarphics@gmail.com> 
+     * @see       {@link https://wizarphics.com} 
+     * @copyright Wizarphics 
+     */
+    public function getModel(string $classname, From $from = From::any, ...$constructorArg): Model
+    {
+
+        return $this->fetchClass('model class', 'models', $this->appModelNameSpace, $classname, $from, ...$constructorArg);
+    }
+
+    private function fetchClass(string $type, string $defautDir, string $appNameSpace, string $classname, From $from = From::any, ...$constructorArg)
+    {
+        if (class_exists($classname)) {
+            $classname = (new ReflectionClass($classname))->getName();
+            $appClass = $appNameSpace . $classname;
+            if (class_exists($appClass)) {
+                return new $appClass(...$constructorArg);
+            } else {
+                return new $classname(...$constructorArg);
+            }
+        }
+
+        $appClass = $appNameSpace . $classname;
+        $coreClass = __NAMESPACE__ . '\\' . $defautDir . '\\' . $classname;
 
         if ($from != From::any) {
             $chosen = $$from . 'Class';
             if (class_exists($chosen)) {
                 return new $chosen(...$constructorArg);
             } else {
-                throw new NotFoundException('No config class found for ' . $classname . ' was found in the for ' . $from, 400);
+                throw new NotFoundException('No ' . $type . ' found for ' . $classname . ' was found in the for ' . $from, 400);
             }
         }
 
@@ -166,42 +191,7 @@ class Application
             return new $coreClass(...$constructorArg);
         }
 
-        throw new NotFoundException('No config class found for ' . $classname, 400);
-    }
-
-    /**
-     * [Description for getModel]
-     *
-     * @return Model
-     * 
-     * Created at: 1/2/2023, 2:25:03 AM (Africa/Lagos)
-     * @author     Wizarphics <wizarphics@gmail.com> 
-     * @see       {@link https://wizarphics.com} 
-     * @copyright Wizarphics 
-     */
-    public function getModel(string $classname, From $from = From::any, ...$constructorArg): Model
-    {
-        $appModel = $this->appModelNameSpace . $classname;
-        $coreModel = __NAMESPACE__ . '\\models\\' . $classname;
-
-        if ($from != From::any) {
-            $chosen = $$from . 'Model';
-            if (class_exists($chosen)) {
-                return new $chosen(...$constructorArg);
-            } else {
-                throw new NotFoundException('No model class found for ' . $classname . ' was found in the for ' . $from, 400);
-            }
-        }
-
-        if (class_exists($appModel)) {
-            return new $appModel(...$constructorArg);
-        }
-
-        if (class_exists($coreModel)) {
-            return new $coreModel(...$constructorArg);
-        }
-
-        throw new NotFoundException('No model class found for ' . $classname, 400);
+        throw new NotFoundException('No ' . $type . ' found for ' . $classname, 400);
     }
 }
 
