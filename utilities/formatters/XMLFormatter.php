@@ -4,8 +4,9 @@ namespace wizarphics\wizarframework\utilities\formatters;
 
 use RuntimeException;
 use SimpleXMLElement;
+use wizarphics\wizarframework\interfaces\FormatterInterface;
 
-class XMLFormatter
+class XMLFormatter implements FormatterInterface
 {
     /**
      * Takes the given data and formats it.
