@@ -19,10 +19,10 @@ class SessionAuth implements AuthenticationInterface
 {
 
     // User states
-    private const STATE_UNKNOWN   = 0; // Not checked yet.
-    private const STATE_ANONYMOUS = 1;
-    private const STATE_PENDING   = 2; // 2FA or Activation required.
-    private const STATE_LOGGED_IN = 3;
+    protected const STATE_UNKNOWN   = 0; // Not checked yet.
+    protected const STATE_ANONYMOUS = 1;
+    protected const STATE_PENDING   = 2; // 2FA or Activation required.
+    protected const STATE_LOGGED_IN = 3;
 
     protected UserModel $userHandler;
 
@@ -36,14 +36,14 @@ class SessionAuth implements AuthenticationInterface
     /**
      * The User auth state
      */
-    private int $userState = self::STATE_UNKNOWN;
+    protected int $userState = self::STATE_UNKNOWN;
 
     /**
      * Should the user be remembered?
      */
     protected bool $rememberMe = false;
 
-    private $_sessionName, $_cookieName, $_cookieExpiry;
+    protected $_sessionName, $_cookieName, $_cookieExpiry;
 
     public function __construct(UserModel $userHandler)
     {
@@ -163,7 +163,7 @@ class SessionAuth implements AuthenticationInterface
         app()->triggerEvent(self::LOGIN_EVENT, $user);
     }
 
-    private function issueUserState()
+    protected function issueUserState()
     {
         if ($this->userState !== self::STATE_UNKNOWN) {
             // Checked already.

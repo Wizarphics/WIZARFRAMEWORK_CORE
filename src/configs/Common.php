@@ -122,11 +122,10 @@ if (!function_exists('is_index')) {
 }
 
 
-
 if (!function_exists('auth')) {
-    function auth()
+    function auth(array $authenicator = [])
     {
-        return new Auth(new Authentication());
+        return new Auth(new Authentication($authenicator));
     }
 }
 
@@ -254,7 +253,9 @@ if (!function_exists('log_message')) {
     {
         $dbg = new Debug();
         $dbf = new Functions();
-        $dbf->writeLog(json_encode([$key => $message]));
+        $date = (new DateTime())->format('Y-m-d H:i:s');
+        
+        $dbf->writeLog("$date\t[".strtoupper($key)."]\t".json_encode($message)."\r\n");
         if ($key == 'error') {
             error_log(json_encode($message));
         }
@@ -462,11 +463,12 @@ if (!function_exists('numberField')) {
 }
 
 
+
 if (!function_exists('selectField')) {
-    function selectField(Model $model, string $attribute, array $options = [],)
+    function selectField(Model $model, string $attribute, array $options = [],array $additionalField=[])
     {
         $form = new Form;
-        return $form->select($model, $attribute, $options);
+        return $form->select($model, $attribute, $options, $additionalField);
     }
 }
 

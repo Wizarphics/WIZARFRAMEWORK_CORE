@@ -38,7 +38,7 @@ class Auth
      *
      * @return $this
      */
-    public function setAuthenticator(?string $alias = null): self
+    public function guard(?string $alias = null): self
     {
         if (!empty($alias)) {
             $this->alias = $alias;
@@ -50,7 +50,7 @@ class Auth
     /**
      * Returns the current authentication class.
      */
-    public function getAuthenticator(): AuthenticationInterface
+    public function whichGuard(): AuthenticationInterface
     {
         return $this->authenticate
             ->guard($this->alias);
@@ -61,8 +61,8 @@ class Auth
      */
     public function user(): UserModel|User|null
     {
-        return $this->getAuthenticator()->loggedIn()
-            ? $this->getAuthenticator()->getUser()
+        return $this->whichGuard()->loggedIn()
+            ? $this->whichGuard()->getUser()
             : null;
     }
 

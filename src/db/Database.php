@@ -42,13 +42,13 @@ class Database
         $dsn = $config['dsn'] ?? '';
         $user = $config['user'] ?? '';
         $password = $config['password'] ?? '';
-        try{
+        try {
             $this->_pdo = new PDO($dsn, $user, $password);
             $this->_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->_pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
             $this->log('Database connection established.', 'l');
             $this->set_lastInsertId($this->_pdo->lastInsertId());
-        }catch(\PDOException $e) {
+        } catch (\PDOException $e) {
             throw new DatabaseException($e);
         }
     }
@@ -116,17 +116,36 @@ class Database
             $where = $key;
         }
 
-        $this->_where($where);
+        if (count($where) == 3) {
+            $whereFormatted = [
+                'column' => $where[0],
+                'operator' => $where[1],
+                'value' => $where[2]
+            ];
+        } elseif (count($where) == 1) {
+            $whereFormatted = [
+                'column' => $key = key($where),
+                'value' => $where[$key]
+            ];
+        }
+
+        $this->_where($whereFormatted);
         return $this;
     }
 
     public function whereNotIn(string $column, array $values)
     {
-        $values = "(" . implode(", ", $values) . ")";
-        $where = [
-            $column, "NOT IN", $values
+        // $values = "(" . implode(", ", $values) . ")";
+        $values = array_map(fn ($value) => "'$value'", $values);
+        $values = implode(", ", $values) . ")";
+        // sd($values);
+        $whereFormatted = [
+            "column" => $column,
+            "operator" => "NOT IN (",
+            "value" => $values,
+            "not" => true
         ];
-        $this->_where($where);
+        $this->_where($whereFormatted);
 
         return $this;
     }
@@ -174,7 +193,6 @@ class Database
         return array();
     }
 
-
     private function _where(array $where)
     {
         static::$_where[] = $this->_buildWhere($where);
@@ -187,32 +205,24 @@ class Database
 
     private function _buildWhere($where)
     {
-        if (count($where) === 3) {
-            $field = $where[0];
-            $operator = $where[1];
-            $value = ($where[2]);
-            $pointer = ":$field";
-            // print '<pre>';
-            // var_dump(get_defined_vars());
-            // print '</pre>';
-            // exit;
-        } else {
-            $field = key($where);
-            $value = (end($where));
-            $operator = '=';
-            $pointer = ":$field";
+        $op = $where['operator']??'=';
+        $value = $where['value'];
+        $column = $where['column'];
+        $pointer = ":$column";
+        if(isset($where['not']) && $where['not'] == true){
+            $pointer .= " )";
         }
-        $operators = ['=', '<', '>', '<=', '>=', 'NOT IN'];
-        if (!in_array($operator, $operators)) {
-            $operator = '=';
+
+        $operators = ['=', '<', '>', '<=', '>=', 'NOT IN ('];
+        if (!in_array($op, $operators)) {
+            $op = '=';
         }
 
         // var_dump($where, $field, key($where));
         // exit;
+        static::$_whereValues[$column] = $value;
 
-        static::$_whereValues[$field] = $value;
-
-        return "{$field} {$operator} {$pointer}\r\n";
+        return "{$column} {$op} {$pointer}\r\n";
     }
 
     public function get($select = "*", $where = [], $table = "", $fetchClass = false)
@@ -355,7 +365,7 @@ class Database
             AskCli::showProgress($i, $count);
             $i++;
         } while ($i <= $count);
-       
+
         $statement->execute();
         $this->log("Fetched applied migrations", '');
 
@@ -401,17 +411,18 @@ class Database
                 default => 'dark_gray'
             };
             AskCli::print($STR, $color);
-        }else{
+        } else {
             log_message('Database', $STR);
         }
     }
 
-	/**
-	 * @param string|int $_lastInsertId 
-	 * @return self
-	 */
-	public function set_lastInsertId(string|int $_lastInsertId): self {
-		$this->_lastInsertId = $_lastInsertId;
-		return $this;
-	}
+    /**
+     * @param string|int $_lastInsertId 
+     * @return self
+     */
+    public function set_lastInsertId(string|int $_lastInsertId): self
+    {
+        $this->_lastInsertId = $_lastInsertId;
+        return $this;
+    }
 }

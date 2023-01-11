@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace wizarphics\wizarframework\auth\traits;
@@ -32,15 +33,15 @@ trait Authorizable
             }
 
             // Validate that role exists
-            if (!in_array($role, $definedRoles, true)) {
+            if (!array_key_exists($role, $definedRoles)) {
                 throw new \InvalidArgumentException(__('Auth.unknownRole', [$role]));
             }
 
             $this->retrievedRoles[] = $role;
-
-            if (count($this->retrievedRoles) > $rolesCount) {
-                $this->saveRoles();
-            }
+        }
+        
+        if (count($this->retrievedRoles) > $rolesCount) {
+            $this->saveRoles();
         }
 
         return $this;
@@ -361,6 +362,7 @@ trait Authorizable
                     $type => $item
                 ];
 
+                $manager->loadData($data);
                 $manager->save($data);
             });
         }
