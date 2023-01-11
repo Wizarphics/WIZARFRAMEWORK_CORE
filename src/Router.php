@@ -30,7 +30,8 @@ class Router
     private array $definedPlaceholder = [
         '(:num)' => '[0-9]+$',
         // '(:float)' => '/^\d+(\.\d{1,2})?/',
-        '(:any)' => '[\w]+$',
+        // '(:any)' => '[\w]+$',
+        '(:any)' => '[^\n]+$',
         '(:alpha)' => '[a-zA-Z]+$',
         '(:alphaL)' => '[a-z]+$',
         '(:alphaU)' => '[A-Z]+$',

@@ -46,7 +46,7 @@ class Authentication
     public function guard(?string $alias = null): AuthenticationInterface
     {
         // Determine actual Authenticator alias
-        $alias ??= $this->defaultAuthenticator;
+        $alias = $alias ?: $this->defaultAuthenticator;
 
         // Return the cached instance if we have it
         if (!empty($this->instances[$alias])) {
@@ -55,7 +55,7 @@ class Authentication
 
         // Otherwise, try to create a new instance.
         if (!array_key_exists($alias, $this->authenticators)) {
-            throw new RuntimeException(__('Auth.unknownAuthenticator', [$alias]));
+            throw new RuntimeException(__('Auth.unknownAuthenticator', [$alias]), 400);
         }
 
         $className = $this->authenticators[$alias];

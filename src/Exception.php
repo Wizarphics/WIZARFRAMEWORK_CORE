@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace wizarphics\wizarframework;
 
 use ErrorException;
+use ReflectionClass;
 use Throwable;
 use wizarphics\wizarframework\exception\NotFoundException;
 use wizarphics\wizarframework\http\Request;
@@ -158,8 +159,8 @@ class Exception
     {
         $trace = $throwable->getTrace();
         return [
-            'title' => $throwable->getMessage(),
-            'type' => get_class($throwable),
+            'title' => $title = (new ReflectionClass($throwable))->getShortName(),
+            'type' => $title,
             'code' => $statusCode,
             'message' => $throwable->getMessage(),
             'file' => $throwable->getFile(),
@@ -176,7 +177,7 @@ class Exception
      */
     protected function assertCode(Throwable $exception):array
     {
-        $statusCode = abs($exception->getCode());
+        $statusCode = abs((int)$exception->getCode());        
         if ($statusCode < 100 || $statusCode > 599){
             $exitStatus = $statusCode + EXIT__AUTO_MIN;
 

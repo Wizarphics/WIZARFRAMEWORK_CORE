@@ -74,6 +74,11 @@ class Request extends Message implements MessageInterface, RequestInterface
         // $this->routeArgs = [];
         // $this->files = new FileCollection();
         $this->detectLocale();
+        if(empty($this->uri)){
+            $this->uri = new URI();
+        }
+
+        $this->ipAddress = $this->getIPAddress();
     }
 
     /**
