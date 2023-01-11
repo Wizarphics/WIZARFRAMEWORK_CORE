@@ -1,18 +1,29 @@
 {
-    "name": "wizarphics/wizarframework-core",
-    "authors": [
-        {
-            "name": "Wizarphics",
-            "email": "wizarphics@gmail.com"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "wizarphics\\wizarframework\\": "."
-        }
-    },
-    "require": {
-        "php-sage/sage": "^1.2",
-        "langleyfoxall/math_eval": "^2.0"
+  "name": "wizarphics/wizarframework-core",
+  "authors": [
+    {
+      "name": "Wizarphics",
+      "email": "wizarphics@gmail.com"
     }
+  ],
+  "autoload": {
+    "psr-4": {
+      "wizarphics\\wizarframework\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    },
+    "files": [
+      "tests/Helper.php"
+    ]
+  },
+  "require": {
+    "php-sage/sage": "^1.2",
+    "langleyfoxall/math_eval": "^2.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9"
+  }
 }
